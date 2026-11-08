@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 /Models/
+=======
+>>>>>>> origin/main
 .env
 .venv/
 __pycache__/
 *.pyc
 
+<<<<<<< HEAD
 logs/
+=======
+logs/
+>>>>>>> origin/main
