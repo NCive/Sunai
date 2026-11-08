@@ -1,0 +1,162 @@
+{
+  "model": "meta-llama/Llama-3.2-3B-Instruct",
+  "profile": "quick",
+  "timestamp": "2026-11-06T14:08:26.792325+00:00",
+  "dtype": "torch.float16",
+  "errors": {
+    "load": "You are trying to access a gated repo.\nMake sure to have access to it at https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct.\n403 Client Error. (Request ID: Root=1-6aedc55e-0dc49ba42e6d3dbe48e3f5a9;46205307-fe64-4391-b47a-50e6c2558ae3)\n\nCannot access gated repo for url https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct/resolve/0cb88a4f764b7a12671c53f0838cd831a0843b95/config.json.\nAccess to model meta-llama/Llama-3.2-3B-Instruct is restricted and you are not in the authorized list. Visit"
+  },
+  "params_millions": 3212.749824,
+  "custom_tests": {
+    "rules_pct": 81.81818181818181,
+    "lang_pct": 100.0,
+    "detail": [
+      {
+        "cat": "rules",
+        "prompt": "Reply with only valid JSON with the keys name and age for a person called Sam aged 30. No other text.",
+        "output": "{\"name\": \"Sam\", \"age\": 30}",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write exactly 3 bullet points about the benefits of sleep. Start each bullet with '- '. No other text.",
+        "output": "- Improved cognitive function and memory consolidation\n- Enhanced physical health and immune system function\n- Better emotional regulation and mental well-being",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Answer in all lowercase letters only: why is Paris famous?",
+        "output": "paris is famous for many reasons. here are a few:\n\n1. iconic landmarks: paris is home to many famous landmarks like the eiffel tower, notre dame cathedral, and the louvre museum.\n2. art and culture: paris has a rich history of art and culture, with many famous artists like monet, Renoir, and Picasso",
+        "pass": false
+      },
+      {
+        "cat": "rules",
+        "prompt": "Describe the sea in fewer than 20 words.",
+        "output": "The sea is a vast, dynamic body of saltwater, covering over 70% of the Earth's surface.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write one sentence about dogs that ends with the word 'bone'.",
+        "output": "Dogs love to chew on anything they can get their teeth on, especially a tasty old knucklebone.",
+        "pass": false
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a two-line poem about rain. Do not use the word 'water'.",
+        "output": "Softly falls the evening rain,\nCalming streets and soothing pain.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Reply with exactly one word, yes or no: is the sky usually blue on a clear day?",
+        "output": "Yes.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "List the numbers 1 to 5 separated by commas. Nothing else.",
+        "output": "1,2,3,4,5",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write the word banana in capital letters and nothing else.",
+        "output": "BANANA",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a title wrapped in double angle brackets like <<title>>, then one sentence about tea.",
+        "output": "<<A Steeped Tradition: The Art of Brewing the Perfect Cup of Tea>> \n\nSteeping a good cup of tea requires a delicate balance of temperature, time, and tea leaves.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "What is 17 + 26? Reply with only the number.",
+        "output": "43",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Answer in Hindi only (Devanagari script): What is the capital of India?",
+        "output": "\u092d\u093e\u0930\u0924 \u0915\u0940 \u0930\u093e\u091c\u0927\u093e\u0928\u0940 \u0928\u0908 \u0926\u093f\u0932\u094d\u0932\u0940 \u0939\u0948\u0964",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u0939\u093f\u0902\u0926\u0940 \u092e\u0947\u0902 \u0926\u094b \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0916\u093f\u090f: \u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?",
+        "output": "\u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948? \u092f\u0939 \u0938\u0935\u093e\u0932 \u0906\u092a\u0915\u0947 \u0926\u094d\u0935\u093e\u0930\u093e \u092a\u0938\u0902\u0926 \u0915\u093f\u090f \u091c\u093e\u0928\u0947 \u0935\u093e\u0932\u0947 \u092b\u0932\u094b\u0902 \u0915\u0947 \u092c\u093e\u0930\u0947 \u092e\u0947\u0902 \u091c\u093e\u0928\u0928\u0947 \u0915\u093e \u090f\u0915 \u0905\u091a\u094d\u091b\u093e \u0924\u0930\u0940\u0915\u093e \u0939\u0948\u0964",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u092e\u0930\u093e\u0920\u0940\u0924 \u090f\u0915 \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0939\u093e: \u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b?",
+        "output": "\u092e\u0930\u093e\u0920\u0940\u0924 \u090f\u0915 \u0935\u093e\u0915\u094d\u092f \u0939\u0947 \u092f\u0947\u0925\u0947 \u0906\u0939\u0947:\n\n\u092a\u093e\u090a\u0938 \u0939\u093e \u0935\u093e\u0924\u093e\u0935\u0930\u0923\u093e\u0924\u0940\u0932 \u0935\u093e\u092f\u0941\u092e\u0902\u0921\u0932\u0940\u092f \u092a\u094d\u0930\u0926\u0947\u0936\u093e\u0902\u092e\u0927\u094d\u092f\u0947 \u0935\u093e\u092f\u0941\u092e\u093e\u0928\u093e\u091a\u093e \u092a\u094d\u0930\u0935\u093e\u0939 \u0906\u0939\u0947 \u091c\u094b \u0935\u093f\u0936\u0947\u0937\u0924\u0903 \u092a\u093e\u0923\u094d\u092f\u093e\u091a\u094d\u092f\u093e \u0915\u0923\u093e\u0902\u091a\u094d\u092f\u093e \u0938\u093e\u0925\u0940 \u0935\u093e\u0924\u093e\u0935\u0930\u0923\u093e\u0924\u0942\u0928 \u092a\u0943\u0925\u094d\u0935\u0940\u091a\u094d\u092f\u093e \u0938\u0924\u0924 \u092a\u093e\u0923\u094d\u092f\u093e\u091a\u094d\u092f\u093e \u0938\u0902\u091a\u094d\u092f\u093e\u0924\u0942\u0928 \u092a\u094d\u0930\u0935\u093e\u0939\u093f\u0924 \u0939\u094b\u0924\u094b.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "R\u00e9ponds en fran\u00e7ais uniquement : quelle est la capitale de l'Espagne ?",
+        "output": "La capitale de l'Espagne est Madrid.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Responde solo en espa\u00f1ol: \u00bfcu\u00e1l es la capital de Italia?",
+        "output": "La capital de Italia es Roma.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Antworte nur auf Deutsch: Was ist die Hauptstadt von Deutschland?",
+        "output": "Die Hauptstadt von Deutschland ist Berlin.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Translate to English: 'Je mange une pomme.'",
+        "output": "The translation of \"Je mange une pomme\" to English is:\n\n\"I am eating an apple.\"",
+        "pass": true
+      }
+    ]
+  },
+  "speed": {
+    "short": {
+      "prompt_tokens": 47,
+      "ttft_ms": 204.00986665238938,
+      "estimated_decode_tokens_per_s": 5.404954537573042
+    },
+    "long": {
+      "prompt_tokens": 1024,
+      "ttft_ms": 2092.9596666246653,
+      "estimated_decode_tokens_per_s": 5.14935881694702
+    },
+    "peak_memory_gb": 6.653086208
+  },
+  "lm_eval": {
+    "boolq": {
+      "name": "boolq",
+      "alias": "boolq",
+      "sample_len": 200,
+      "acc,none": 0.79,
+      "acc_stderr,none": "N/A"
+    },
+    "hellaswag": {
+      "name": "hellaswag",
+      "alias": "hellaswag",
+      "sample_len": 200,
+      "acc,none": 0.505,
+      "acc_stderr,none": "N/A",
+      "acc_norm,none": 0.64,
+      "acc_norm_stderr,none": "N/A"
+    },
+    "xnli_hi": {
+      "name": "xnli_hi",
+      "alias": "xnli_hi",
+      "sample_len": 200,
+      "acc,none": 0.475,
+      "acc_stderr,none": "N/A"
+    }
+  }
+}

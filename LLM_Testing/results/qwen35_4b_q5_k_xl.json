@@ -1,0 +1,206 @@
+{
+  "name": "qwen35_4b_q5_k_xl",
+  "model": "D:\\Python Projects\\Gnani AI\\Sunai\\Models\\hub\\models--unsloth--Qwen3.5-4B-GGUF\\snapshots\\e87f176479d0855a907a41277aca2f8ee7a09523\\Qwen3.5-4B-UD-Q5_K_XL.gguf",
+  "backend": "llama_cpp",
+  "server_url": "http://127.0.0.1:8080",
+  "profile": "quick",
+  "timestamp": "2026-11-08T05:16:50.353516+00:00",
+  "errors": {
+    "lm": "lm_eval did not create its output file: results\\qwen35_4b_q5_k_xl_lm_eval_0.json",
+    "ppl": "No 'Final estimate: PPL' in output; see results/ppl_llama_log.txt"
+  },
+  "custom_tests": {
+    "rules_pct": 100.0,
+    "lang_pct": 100.0,
+    "detail": [
+      {
+        "cat": "rules",
+        "prompt": "Reply with only valid JSON with the keys name and age for a person called Sam aged 30. No other text.",
+        "output": "{\"name\": \"Sam\", \"age\": 30}",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write exactly 3 bullet points about the benefits of sleep. Start each bullet with '- '. No other text.",
+        "output": "- Sleep strengthens the immune system by allowing the body to produce more antibodies and fight off infections.\n- Adequate rest improves cognitive function, including memory consolidation, focus, and problem-solving abilities.\n- Quality sleep regulates hormones and helps maintain a healthy weight by",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Answer in all lowercase letters only: why is Paris famous?",
+        "output": "paris is famous for its iconic landmarks like the eiffel tower and the louvre museum, its rich history as the capital of france, its world-renowned fashion and culinary scenes, and its romantic atmosphere.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Describe the sea in fewer than 20 words.",
+        "output": "Endless blue waves crash on sandy shores under a bright, sunny sky.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write one sentence about dogs that ends with the word 'bone'.",
+        "output": "Dogs are known for their playful nature and their endless enthusiasm for a chew toy or a tasty bone.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a two-line poem about rain. Do not use the word 'water'.",
+        "output": "The sky weeps silver tears,\nWashing the world in quiet gray.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Reply with exactly one word, yes or no: is the sky usually blue on a clear day?",
+        "output": "yes",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "List the numbers 1 to 5 separated by commas. Nothing else.",
+        "output": "1, 2, 3, 4, 5",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write the word banana in capital letters and nothing else.",
+        "output": "BANANA",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a title wrapped in double angle brackets like <<title>>, then one sentence about tea.",
+        "output": "<<The Art of Brewing>>\nSteeping loose leaves in hot water releases a complex symphony of flavors that can range from earthy and robust to floral and delicate.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "What is 17 + 26? Reply with only the number.",
+        "output": "43",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Answer in Hindi only (Devanagari script): What is the capital of India?",
+        "output": "\u092d\u093e\u0930\u0924 \u0915\u0940 \u0930\u093e\u091c\u0927\u093e\u0928\u0940 \u0928\u0908 \u0926\u093f\u0932\u094d\u0932\u0940 \u0939\u0948\u0964",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u0939\u093f\u0902\u0926\u0940 \u092e\u0947\u0902 \u0926\u094b \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0916\u093f\u090f: \u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?",
+        "output": "\u092f\u0939\u093e\u0901 \u0906\u092a\u0915\u0947 \u092a\u094d\u0930\u0936\u094d\u0928 \u092a\u0930 \u0906\u0927\u093e\u0930\u093f\u0924 \u0926\u094b \u0935\u093e\u0915\u094d\u092f \u0926\u093f\u090f \u0917\u090f \u0939\u0948\u0902:\n\n1. \u092e\u0947\u0930\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 **\u0938\u0947\u092c** \u0939\u0948\u0964\n2. \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 **\u092eango** \u0939\u0948?",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u092e\u0930\u093e\u0920\u0940\u0924 \u090f\u0915 \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0939\u093e: \u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b?",
+        "output": "\u092a\u093e\u090a\u0938 \u092a\u093e\u0923\u094d\u092f\u093e\u091a\u094d\u092f\u093e \u0925\u0947\u0902\u092c\u093e\u0902\u091a\u094d\u092f\u093e \u0938\u094d\u0935\u0930\u0942\u092a\u093e\u0924 \u092a\u0921\u0924\u094b.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "R\u00e9ponds en fran\u00e7ais uniquement : quelle est la capitale de l'Espagne ?",
+        "output": "La capitale de l'Espagne est Madrid.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Responde solo en espa\u00f1ol: \u00bfcu\u00e1l es la capital de Italia?",
+        "output": "La capital de Italia es Roma.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Antworte nur auf Deutsch: Was ist die Hauptstadt von Deutschland?",
+        "output": "Die Hauptstadt von Deutschland ist Berlin.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Translate to English: 'Je mange une pomme.'",
+        "output": "I am eating an apple.",
+        "pass": true
+      }
+    ]
+  },
+  "speed": {
+    "short": {
+      "prompt_tokens": 48,
+      "completion_tokens": 128,
+      "ttft_ms": 425.80729999463074,
+      "prompt_tokens_per_s": 112.72704812859071,
+      "decode_tokens_per_s": 17.108155184108362,
+      "total_ms": 7849.1675999976,
+      "samples": [
+        {
+          "prompt_tokens": 48,
+          "completion_tokens": 128,
+          "ttft_ms": 425.80729999463074,
+          "prompt_tokens_per_s": 112.72704812859071,
+          "decode_tokens_per_s": 17.108155184108362,
+          "total_ms": 7849.1675999976
+        },
+        {
+          "prompt_tokens": 48,
+          "completion_tokens": 128,
+          "ttft_ms": 379.80319999041967,
+          "prompt_tokens_per_s": 126.38124165676007,
+          "decode_tokens_per_s": 12.037915604774481,
+          "total_ms": 10929.802399987238
+        },
+        {
+          "prompt_tokens": 48,
+          "completion_tokens": 128,
+          "ttft_ms": 442.22650000301655,
+          "prompt_tokens_per_s": 108.54166360376996,
+          "decode_tokens_per_s": 17.157670098629474,
+          "total_ms": 7844.163900008425
+        }
+      ]
+    },
+    "long": {
+      "prompt_tokens": 1037,
+      "completion_tokens": 128,
+      "ttft_ms": 3839.9981999973534,
+      "prompt_tokens_per_s": 270.0522099204929,
+      "decode_tokens_per_s": 14.143398446848806,
+      "total_ms": 12836.18139999453,
+      "samples": [
+        {
+          "prompt_tokens": 1037,
+          "completion_tokens": 108,
+          "ttft_ms": 3710.178799999994,
+          "prompt_tokens_per_s": 279.5013544899781,
+          "decode_tokens_per_s": 10.551407794965339,
+          "total_ms": 13851.005699994857
+        },
+        {
+          "prompt_tokens": 1037,
+          "completion_tokens": 128,
+          "ttft_ms": 3856.7271000065375,
+          "prompt_tokens_per_s": 268.88083421775997,
+          "decode_tokens_per_s": 14.143398446848806,
+          "total_ms": 12836.18139999453
+        },
+        {
+          "prompt_tokens": 1037,
+          "completion_tokens": 128,
+          "ttft_ms": 3839.9981999973534,
+          "prompt_tokens_per_s": 270.0522099204929,
+          "decode_tokens_per_s": 14.990659048850228,
+          "total_ms": 12311.940600004164
+        }
+      ]
+    }
+  },
+  "lm_eval": {
+    "boolq": {
+      "error": "lm_eval did not create its output file: results\\qwen35_4b_q5_k_xl_lm_eval_0.json"
+    },
+    "hellaswag": {
+      "error": "lm_eval did not create its output file: results\\qwen35_4b_q5_k_xl_lm_eval_0.json"
+    }
+  },
+  "model_file_gb": 3.25,
+  "reasoning": "off"
+}

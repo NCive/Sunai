@@ -1,0 +1,167 @@
+{
+  "model": "Qwen/Qwen3-0.6B",
+  "profile": "quick",
+  "timestamp": "2026-11-06T05:55:47.344512+00:00",
+  "dtype": "torch.float16",
+  "errors": {},
+  "params_millions": 596.04992,
+  "custom_tests": {
+    "rules_pct": 63.63636363636363,
+    "lang_pct": 71.42857142857143,
+    "detail": [
+      {
+        "cat": "rules",
+        "prompt": "Reply with only valid JSON with the keys name and age for a person called Sam aged 30. No other text.",
+        "output": "```json\n{\n  \"name\": \"Sam\",\n  \"age\": 30\n}\n```",
+        "pass": false
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write exactly 3 bullet points about the benefits of sleep. Start each bullet with '- '. No other text.",
+        "output": "- Improved cognitive function and focus  \n- Enhanced emotional regulation and mood  \n- Better long-term health and well-being",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Answer in all lowercase letters only: why is Paris famous?",
+        "output": "why is paris famous?",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Describe the sea in fewer than 20 words.",
+        "output": "The sea is vast, blue, and full of life.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write one sentence about dogs that ends with the word 'bone'.",
+        "output": "A dog's bone is a testament to its loyalty and strength.",
+        "pass": false
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a two-line poem about rain. Do not use the word 'water'.",
+        "output": "Raindrops fall softly,  \nA gentle whisper through the sky.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Reply with exactly one word, yes or no: is the sky usually blue on a clear day?",
+        "output": "yes",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "List the numbers 1 to 5 separated by commas. Nothing else.",
+        "output": "1, 2, 3, 4, 5.",
+        "pass": false
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write the word banana in capital letters and nothing else.",
+        "output": "BANANA",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a title wrapped in double angle brackets like <<title>>, then one sentence about tea.",
+        "output": "<<Tea: A Simple yet Enriching Beverage>>\n\nTea is a simple yet enriching beverage that offers a delightful taste and a connection to nature.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "What is 17 + 26? Reply with only the number.",
+        "output": "17 + 26 = 43",
+        "pass": false
+      },
+      {
+        "cat": "lang",
+        "prompt": "Answer in Hindi only (Devanagari script): What is the capital of India?",
+        "output": "\u0907\u0902\u0926\u094d\u0930\u093e\u0928\u0941\u0938\u093e\u0930 \u0905\u0927\u093f\u0915\u093e\u0930\u0940 \u0905\u0902\u0924\u0930\u094d\u0930\u093e\u0937\u094d\u091f\u094d\u0930\u0940\u092f \u0930\u093e\u091c\u094d\u092f \u0915\u0947 \u0928\u093e\u092e \u091c\u093e\u0928 \u0926\u0947\u0924\u093e \u0939\u0948\u0964",
+        "pass": false
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u0939\u093f\u0902\u0926\u0940 \u092e\u0947\u0902 \u0926\u094b \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0916\u093f\u090f: \u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?",
+        "output": "\u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u092e\u0930\u093e\u0920\u0940\u0924 \u090f\u0915 \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0939\u093e: \u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b?",
+        "output": "\u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b?",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "R\u00e9ponds en fran\u00e7ais uniquement : quelle est la capitale de l'Espagne ?",
+        "output": "La capitale de l'Espagne est **Madrid**.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Responde solo en espa\u00f1ol: \u00bfcu\u00e1l es la capital de Italia?",
+        "output": "La capital de Italia es Roma.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Antworte nur auf Deutsch: Was ist die Hauptstadt von Deutschland?",
+        "output": "Die Hauptstadt von Deutschland ist Berlin.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Translate to English: 'Je mange une pomme.'",
+        "output": "\"I eat a fruit.\"",
+        "pass": false
+      }
+    ]
+  },
+  "perplexity": {
+    "perplexity_per_token": 19.69896980739387,
+    "bits_per_byte": 1.0282643253870485,
+    "tokens": 35925,
+    "context": 1024,
+    "stride": 512
+  },
+  "speed": {
+    "short": {
+      "prompt_tokens": 24,
+      "ttft_ms": 99.52856666253258,
+      "estimated_decode_tokens_per_s": 18.351378677360387
+    },
+    "long": {
+      "prompt_tokens": 1024,
+      "ttft_ms": 382.13549996726215,
+      "estimated_decode_tokens_per_s": 16.529128851865195
+    },
+    "peak_memory_gb": 1.370941952
+  },
+  "lm_eval": {
+    "boolq": {
+      "name": "boolq",
+      "alias": "boolq",
+      "sample_len": 200,
+      "acc,none": 0.655,
+      "acc_stderr,none": "N/A"
+    },
+    "hellaswag": {
+      "name": "hellaswag",
+      "alias": "hellaswag",
+      "sample_len": 200,
+      "acc,none": 0.435,
+      "acc_stderr,none": "N/A",
+      "acc_norm,none": 0.525,
+      "acc_norm_stderr,none": "N/A"
+    },
+    "xnli_hi": {
+      "name": "xnli_hi",
+      "alias": "xnli_hi",
+      "sample_len": 200,
+      "acc,none": 0.355,
+      "acc_stderr,none": "N/A"
+    }
+  }
+}

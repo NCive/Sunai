@@ -1,0 +1,160 @@
+{
+  "model": "openbmb/MiniCPM5-2B",
+  "profile": "quick",
+  "timestamp": "2026-11-06T11:35:00.381055+00:00",
+  "dtype": "torch.float16",
+  "errors": {},
+  "params_millions": 2516.75648,
+  "custom_tests": {
+    "rules_pct": 100.0,
+    "lang_pct": 85.71428571428571,
+    "detail": [
+      {
+        "cat": "rules",
+        "prompt": "Reply with only valid JSON with the keys name and age for a person called Sam aged 30. No other text.",
+        "output": "{\"name\": \"Sam\", \"age\": 30}",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write exactly 3 bullet points about the benefits of sleep. Start each bullet with '- '. No other text.",
+        "output": "- Improved cognitive function\n- Enhanced physical well-being\n- Better emotional regulation",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Answer in all lowercase letters only: why is Paris famous?",
+        "output": "paris is famous because of its beautiful flowers and the eiffel tower.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Describe the sea in fewer than 20 words.",
+        "output": "The vast, endless water.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write one sentence about dogs that ends with the word 'bone'.",
+        "output": "Tossing the bone.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a two-line poem about rain. Do not use the word 'water'.",
+        "output": "A gentle fall, a soft embrace.\nThe world feels calm, a quiet space.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Reply with exactly one word, yes or no: is the sky usually blue on a clear day?",
+        "output": "yes",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "List the numbers 1 to 5 separated by commas. Nothing else.",
+        "output": "1, 2, 3, 4, 5",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write the word banana in capital letters and nothing else.",
+        "output": "BANANA",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a title wrapped in double angle brackets like <<title>>, then one sentence about tea.",
+        "output": "<<The Simple Act>> Tea is a quiet moment of peace.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "What is 17 + 26? Reply with only the number.",
+        "output": "43",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Answer in Hindi only (Devanagari script): What is the capital of India?",
+        "output": "\u092d\u093e\u0930\u0924 \u0915\u093e \u0930\u093e\u091c\u0927\u093e\u0928\u0940 \u0936\u0939\u0930 \u092e\u0941\u0902\u092c\u0908 \u0939\u0948\u0964",
+        "pass": false
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u0939\u093f\u0902\u0926\u0940 \u092e\u0947\u0902 \u0926\u094b \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0916\u093f\u090f: \u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?",
+        "output": "\u092e\u0947\u0930\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0932\u093e\u0932 \u0932\u0948\u092a\u0938\u094d\u091f\u093f\u0915 \u0939\u0948\u0964 \u092f\u0939 \u0916\u093e\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0938\u094d\u0935\u093e\u0926\u093f\u0937\u094d\u091f \u0932\u0917\u0924\u093e \u0939\u0948\u0964",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u092e\u0930\u093e\u0920\u0940\u0924 \u090f\u0915 \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0939\u093e: \u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b?",
+        "output": "\u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b?",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "R\u00e9ponds en fran\u00e7ais uniquement : quelle est la capitale de l'Espagne ?",
+        "output": "La capitale de l'Espagne est Madrid.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Responde solo en espa\u00f1ol: \u00bfcu\u00e1l es la capital de Italia?",
+        "output": "La capital de Italia es Roma.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Antworte nur auf Deutsch: Was ist die Hauptstadt von Deutschland?",
+        "output": "Die Hauptstadt von Deutschland ist Berlin.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Translate to English: 'Je mange une pomme.'",
+        "output": "I eat an apple.",
+        "pass": true
+      }
+    ]
+  },
+  "perplexity": {
+    "perplexity_per_token": 13.265970892329038,
+    "bits_per_byte": 0.851649970729694,
+    "tokens": 34305,
+    "context": 1024,
+    "stride": 512
+  },
+  "speed": {
+    "short": {
+      "prompt_tokens": 24,
+      "ttft_ms": 153.9654666945959,
+      "estimated_decode_tokens_per_s": 6.928007554239943
+    },
+    "long": {
+      "prompt_tokens": 1024,
+      "ttft_ms": 1213.9703333377838,
+      "estimated_decode_tokens_per_s": 6.925481543898479
+    },
+    "peak_memory_gb": 5.166203392
+  },
+  "lm_eval": {
+    "boolq": {
+      "name": "boolq",
+      "alias": "boolq",
+      "sample_len": 200,
+      "acc,none": 0.855,
+      "acc_stderr,none": "N/A"
+    },
+    "hellaswag": {
+      "name": "hellaswag",
+      "alias": "hellaswag",
+      "sample_len": 200,
+      "acc,none": 0.465,
+      "acc_stderr,none": "N/A",
+      "acc_norm,none": 0.545,
+      "acc_norm_stderr,none": "N/A"
+    }
+  }
+}

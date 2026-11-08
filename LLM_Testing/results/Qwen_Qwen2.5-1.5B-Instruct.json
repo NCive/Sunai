@@ -1,0 +1,224 @@
+{
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "profile": "quick",
+  "timestamp": "2026-11-05T13:48:34.217669+00:00",
+  "dtype": "torch.float16",
+  "errors": {},
+  "params_millions": 1543.714304,
+  "custom_tests": {
+    "rules_pct": 90.9090909090909,
+    "lang_pct": 71.42857142857143,
+    "detail": [
+      {
+        "cat": "rules",
+        "prompt": "Reply with only valid JSON with the keys name and age for a person called Sam aged 30. No other text.",
+        "output": "{\n  \"name\": \"Sam\",\n  \"age\": 30\n}",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write exactly 3 bullet points about the benefits of sleep. Start each bullet with '- '. No other text.",
+        "output": "- Sleep helps in memory consolidation and learning retention.\n- It aids in physical recovery and repair processes.\n- Adequate sleep supports emotional regulation and mood stability.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Answer in all lowercase letters only: why is Paris famous?",
+        "output": "paris is famous for its rich history, art, culture, fashion, and iconic landmarks such as the eiffel tower, louvre museum, notre-dame cathedral, and many other beautiful buildings and monuments. it's also known for its romantic atmosphere, delicious food, and vibrant nightlife. paris has been an imp",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Describe the sea in fewer than 20 words.",
+        "output": "The vast expanse of water stretching endlessly towards the horizon, teeming with life and beauty under various light conditions.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write one sentence about dogs that ends with the word 'bone'.",
+        "output": "Dogs wag their tails and love to play fetch, just like they do with their favorite bone.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a two-line poem about rain. Do not use the word 'water'.",
+        "output": "Rain whispers softly to the earth,\nPainting skies with hues of blue and green.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Reply with exactly one word, yes or no: is the sky usually blue on a clear day?",
+        "output": "Yes.",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "List the numbers 1 to 5 separated by commas. Nothing else.",
+        "output": "1,2,3,4,5",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write the word banana in capital letters and nothing else.",
+        "output": "BANANA",
+        "pass": true
+      },
+      {
+        "cat": "rules",
+        "prompt": "Write a title wrapped in double angle brackets like <<title>>, then one sentence about tea.",
+        "output": "Title: The Health Benefits of Tea\n\nOne sentence: Tea has been enjoyed for centuries as a beverage and also as an integral part of traditional medicine practices around the world. It is rich in antioxidants that help protect against various diseases, including cancer and heart disease. Additionally, ",
+        "pass": false
+      },
+      {
+        "cat": "rules",
+        "prompt": "What is 17 + 26? Reply with only the number.",
+        "output": "43",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Answer in Hindi only (Devanagari script): What is the capital of India?",
+        "output": "\u0939\u093f\u0902\u0926\u0940 \u092e\u0947\u0902 \u092c\u0924\u093e\u090f\u0902: \u092d\u093e\u0930\u0924 \u0915\u093e \u0917\u0923\u0930\u093e\u091c\u094d\u092f \u0938\u092d\u093e \u0939\u0948?",
+        "pass": false
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u0939\u093f\u0902\u0926\u0940 \u092e\u0947\u0902 \u0926\u094b \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0916\u093f\u090f: \u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?",
+        "output": "\u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?\n\n\u092e\u0941\u091d\u0947 \u0905\u091a\u094d\u091b\u093e \u0928\u0939\u0940\u0902! \u0924\u094b \u0906\u092a\u0915\u093e \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092b\u0932 \u0915\u094c\u0928 \u0938\u093e \u0939\u0948?",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "\u092e\u0930\u093e\u0920\u0940\u0924 \u090f\u0915 \u0935\u093e\u0915\u094d\u092f \u0932\u093f\u0939\u093e: \u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b?",
+        "output": "\u092a\u093e\u090a\u0938 \u0915\u0938\u093e \u0905\u0938\u0924\u094b? (What's the price of paas?)",
+        "pass": false
+      },
+      {
+        "cat": "lang",
+        "prompt": "R\u00e9ponds en fran\u00e7ais uniquement : quelle est la capitale de l'Espagne ?",
+        "output": "La capitale de l'Espagne est Madrid.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Responde solo en espa\u00f1ol: \u00bfcu\u00e1l es la capital de Italia?",
+        "output": "La capital de Italia es Roma.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Antworte nur auf Deutsch: Was ist die Hauptstadt von Deutschland?",
+        "output": "Die Hauptstadt von Deutschland ist Berlin.",
+        "pass": true
+      },
+      {
+        "cat": "lang",
+        "prompt": "Translate to English: 'Je mange une pomme.'",
+        "output": "The translation of \"Je mange une pomme.\" in English is:\n\n\"I eat an apple.\"\n\nThis French sentence translates directly into the English phrase \"I eat an apple,\" where \"je\" means \"I,\" \"mange\" means \"eat,\" and \"une pomme\" means \"an apple.\"",
+        "pass": true
+      }
+    ]
+  },
+  "perplexity": {
+    "perplexity_per_token": 8.974853717853383,
+    "bits_per_byte": 0.7570543199524321,
+    "tokens": 35925,
+    "context": 1024,
+    "stride": 512
+  },
+  "speed": {
+    "short": {
+      "prompt_tokens": 41,
+      "ttft_ms": 94.00173330989976,
+      "estimated_decode_tokens_per_s": 11.296152693600343
+    },
+    "long": {
+      "prompt_tokens": 1024,
+      "ttft_ms": 788.6706000426784,
+      "estimated_decode_tokens_per_s": 9.111494047930675
+    },
+    "peak_memory_gb": 3.220512256
+  },
+  "lm_eval": {
+    "hellaswag": {
+      "name": "hellaswag",
+      "alias": "hellaswag",
+      "sample_len": 200,
+      "acc,none": 0.495,
+      "acc_stderr,none": "N/A",
+      "acc_norm,none": 0.64,
+      "acc_norm_stderr,none": "N/A"
+    },
+    "arc_challenge": {
+      "name": "arc_challenge",
+      "alias": "arc_challenge",
+      "sample_len": 200,
+      "acc,none": 0.435,
+      "acc_stderr,none": "N/A",
+      "acc_norm,none": 0.465,
+      "acc_norm_stderr,none": "N/A"
+    },
+    "piqa": {
+      "name": "piqa",
+      "alias": "piqa",
+      "sample_len": 200,
+      "acc,none": 0.755,
+      "acc_stderr,none": "N/A",
+      "acc_norm,none": 0.775,
+      "acc_norm_stderr,none": "N/A"
+    },
+    "boolq": {
+      "name": "boolq",
+      "alias": "boolq",
+      "sample_len": 200,
+      "acc,none": 0.765,
+      "acc_stderr,none": "N/A"
+    },
+    "winogrande": {
+      "name": "winogrande",
+      "alias": "winogrande",
+      "sample_len": 200,
+      "acc,none": 0.66,
+      "acc_stderr,none": "N/A"
+    },
+    "mmlu": {
+      "alias": "mmlu",
+      "name": "mmlu",
+      "sample_len": 570,
+      "acc,none": 0.6263157894736842,
+      "acc_stderr,none": "N/A",
+      "sample_count": {
+        "acc,none": 570
+      }
+    },
+    "gsm8k": {
+      "name": "gsm8k",
+      "alias": "gsm8k",
+      "sample_len": 100,
+      "exact_match,strict-match": 0.0,
+      "exact_match_stderr,strict-match": "N/A",
+      "exact_match,flexible-extract": 0.46,
+      "exact_match_stderr,flexible-extract": "N/A"
+    },
+    "ifeval": {
+      "name": "ifeval",
+      "alias": "ifeval",
+      "sample_len": 100,
+      "prompt_level_strict_acc,none": 0.41,
+      "prompt_level_strict_acc_stderr,none": "N/A",
+      "inst_level_strict_acc,none": 0.5214723926380368,
+      "inst_level_strict_acc_stderr,none": "N/A",
+      "prompt_level_loose_acc,none": 0.46,
+      "prompt_level_loose_acc_stderr,none": "N/A",
+      "inst_level_loose_acc,none": 0.5705521472392638,
+      "inst_level_loose_acc_stderr,none": "N/A"
+    },
+    "xnli_hi": {
+      "name": "xnli_hi",
+      "alias": "xnli_hi",
+      "sample_len": 200,
+      "acc,none": 0.335,
+      "acc_stderr,none": "N/A"
+    }
+  }
+}
