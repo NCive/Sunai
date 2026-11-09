@@ -1,14 +1,93 @@
-<<<<<<< HEAD
-/Models/
-=======
->>>>>>> origin/main
-.env
-.venv/
-__pycache__/
-*.pyc
+# =====================================================================
+# Sunai Voice Assistant .gitignore
+# =====================================================================
 
-<<<<<<< HEAD
+# Environment variables & secrets
+.env
+.env.*
+*.env
+
+# Large model weights & HuggingFace hub caches
+/Models/
+Models/
+hub/
+snapshots/
+*.gguf
+*.safetensors
+*.bin
+*.onnx
+*.pt
+*.pth
+
+# Runtime logs & metrics data (Plan Section 13 & 16)
 logs/
-=======
-logs/
->>>>>>> origin/main
+Backend/logs/
+*.log
+*.jsonl
+
+# Python virtual environments, packaging & bytecode
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Pytest artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Node & Frontend dependencies and build outputs
+node_modules/
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.vite/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.eslintcache
+*.tsbuildinfo
+
+# OS, IDE & Editor metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
