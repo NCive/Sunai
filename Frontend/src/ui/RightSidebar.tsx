@@ -16,9 +16,13 @@ export interface RightSidebarProps {
   micEnergy: number;
   isSpeakingVad: boolean;
   micChunksCount: number;
+  noiseFloor?: number;
+  isCalibrating?: boolean;
+  onCalibrateNoise?: () => void;
 
   // Intelligence & status
   detectedLanguage: string;
+  onLanguageChange?: (language: string) => void;
   sources: string[];
   isRefused: boolean;
 
@@ -45,14 +49,6 @@ export interface RightSidebarProps {
   style?: React.CSSProperties;
 }
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  'hi-IN': '🇮🇳 Hindi (हिन्दी)',
-  'mr-IN': '🇮🇳 Marathi (मराठी)',
-  'hi-Latn': '🇮🇳 Hinglish (Roman)',
-  'en-IN': '🇮🇳 Indian English',
-  'en': '🇬🇧 English',
-};
-
 const ALL_STATES: SphereState[] = [
   'IDLE',
   'LISTENING',
@@ -72,7 +68,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   micEnergy,
   isSpeakingVad,
   micChunksCount,
+  noiseFloor = 0.005,
+  isCalibrating = false,
+  onCalibrateNoise,
   detectedLanguage,
+  onLanguageChange,
   sources,
   isRefused,
   stubDecision,
@@ -96,8 +96,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   style,
 }) => {
   const [showSourcesExpanded, setShowSourcesExpanded] = useState<boolean>(false);
-
-  const langLabel = LANGUAGE_LABELS[detectedLanguage] || `🌐 ${detectedLanguage}`;
   const latencies = metrics?.latencies_ms;
 
   return (
@@ -215,6 +213,30 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             <span>Chunks Streamed:</span>
             <strong style={{ color: '#e2e8f0' }}>{micChunksCount}</strong>
           </div>
+
+          {/* Adaptive Noise Floor & Calibration Button */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <button
+              onClick={onCalibrateNoise}
+              disabled={!isMicOn || isCalibrating}
+              style={{
+                padding: '4px 8px',
+                fontSize: '0.68rem',
+                fontWeight: 600,
+                background: isCalibrating ? 'rgba(245, 158, 11, 0.2)' : 'rgba(56, 189, 248, 0.12)',
+                color: isCalibrating ? '#fbbf24' : '#38bdf8',
+                border: `1px solid ${isCalibrating ? 'rgba(245, 158, 11, 0.4)' : 'rgba(56, 189, 248, 0.3)'}`,
+                borderRadius: '6px',
+                cursor: !isMicOn || isCalibrating ? 'not-allowed' : 'pointer',
+              }}
+              title="Measure 2 seconds of ambient room silence to adaptively tune noise rejection"
+            >
+              {isCalibrating ? '⏳ Calibrating (2s)...' : 'Calibrate noise (2 s of silence)'}
+            </button>
+            <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+              Floor: <strong style={{ color: '#e2e8f0' }}>{(noiseFloor * 1000).toFixed(1)} mRMS</strong>
+            </span>
+          </div>
         </div>
       </SidebarCard>
 
@@ -226,21 +248,31 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         reduceMotion={reduceMotion}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.74rem' }}>
-          {/* Language Chip */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Language Chip with Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span style={{ color: '#94a3b8', fontWeight: 600 }}>Active Language:</span>
-            <span
-              style={{
-                background: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                borderRadius: '6px',
-                padding: '2px 8px',
-                fontWeight: 600,
-              }}
-            >
-              {langLabel}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <select
+                value={detectedLanguage}
+                onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
+                style={{
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  color: '#38bdf8',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  fontWeight: 600,
+                  fontSize: '0.70rem',
+                  outline: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="indic-auto" style={{ background: '#0f172a', color: '#e2e8f0' }}>Auto</option>
+                <option value="en-IN" style={{ background: '#0f172a', color: '#e2e8f0' }}>English</option>
+                <option value="hi-IN" style={{ background: '#0f172a', color: '#e2e8f0' }}>Hindi</option>
+                <option value="mr-IN" style={{ background: '#0f172a', color: '#e2e8f0' }}>Marathi</option>
+              </select>
+            </div>
           </div>
 
           {/* Latency Strip Breakdown */}

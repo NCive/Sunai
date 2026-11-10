@@ -19,6 +19,7 @@ sunai_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(sunai_root))
 
 from Backend import config
+from Backend.smalltalk_phrases import SMALLTALK_REPLIES
 from gnani.tts import GnaniTTSClient, AudioConfig
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -64,7 +65,7 @@ def main():
         except Exception:
             manifest = {}
 
-    target_languages = ["hi-IN", "mr-IN", "en-IN"] if args.lang == "all" else [args.lang]
+    target_languages = ["hi-IN", "mr-IN", "en-IN", "hinglish"] if args.lang == "all" else [args.lang]
 
     audio_cfg = AudioConfig(
         sample_rate=config.TIMBRE_SAMPLE_RATE,
@@ -77,6 +78,7 @@ def main():
     generated_count = 0
     skipped_count = 0
 
+    # 1. Base Pre-recorded Cache Phrases
     for phrase_key, lang_dict in config.CACHE_PHRASES.items():
         for lang, text in lang_dict.items():
             if lang not in target_languages:
@@ -142,6 +144,74 @@ def main():
             except Exception as e:
                 logger.error(f"[ERROR] Failed to synthesize {manifest_key}: {e}")
                 sys.exit(1)
+
+    # 2. Small Talk Reply Phrases
+    for (intent, lang, variant_idx), text in SMALLTALK_REPLIES.items():
+        if lang not in target_languages:
+            continue
+
+        phrase_key = f"smalltalk_{intent}_{variant_idx}"
+        lang_dir = cache_dir / lang
+        lang_dir.mkdir(parents=True, exist_ok=True)
+        wav_path = lang_dir / f"{phrase_key}.wav"
+        manifest_key = f"{lang}/{phrase_key}"
+
+        if wav_path.exists() and not args.force and manifest_key in manifest:
+            entry = manifest[manifest_key]
+            if entry.get("source") == "timbre_api":
+                current_hash = compute_sha256(wav_path.read_bytes())
+                if current_hash == entry.get("sha256"):
+                    logger.info(f"[SKIP] {manifest_key} already exists and matches manifest SHA256.")
+                    skipped_count += 1
+                    continue
+
+        timbre_lang = "hi-IN" if lang == "hinglish" else lang
+        voice = "Pranav" if lang == "en-IN" else "Devika"
+        logger.info(f"[SYNTHESIZING SMALLTALK] {manifest_key} | lang={timbre_lang} | voice={voice} | text='{text}'")
+
+        try:
+            wav_bytes = client.synthesize(
+                text=text,
+                voice=voice,
+                model=config.TIMBRE_MODEL,
+                language=timbre_lang,
+                speed=config.TIMBRE_SPEED,
+                audio_config=audio_cfg,
+            )
+
+            if not wav_bytes or len(wav_bytes) < 100:
+                raise ValueError(f"Synthesis returned invalid audio data ({len(wav_bytes) if wav_bytes else 0} bytes)")
+
+            wav_path.write_bytes(wav_bytes)
+            sha256 = compute_sha256(wav_bytes)
+            duration = get_wav_duration_seconds(wav_bytes)
+
+            manifest[manifest_key] = {
+                "phrase": phrase_key,
+                "language": lang,
+                "timbre_language": timbre_lang,
+                "voice": voice,
+                "model": config.TIMBRE_MODEL,
+                "text": text,
+                "file_path": str(wav_path.relative_to(cache_dir)),
+                "file_size_bytes": len(wav_bytes),
+                "duration_seconds": round(duration, 3),
+                "sha256": sha256,
+                "source": "timbre_api",
+                "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+
+            logger.info(
+                f"[DONE] Saved {manifest_key}.wav ({len(wav_bytes)} bytes, {duration:.2f}s, sha256={sha256[:8]}...)"
+            )
+            generated_count += 1
+
+            # Polite delay between API calls
+            time.sleep(0.3)
+
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to synthesize {manifest_key}: {e}")
+            sys.exit(1)
 
     # Save manifest
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")

@@ -18,8 +18,10 @@ from Backend.stt import PrismaSTTSession
 from Backend.tts import TimbreTTSClient
 from Backend.state_machine import SunaiStateMachine
 from Backend.turn_manager import TurnManager
-from Backend.audio_cache_manager import get_cached_audio
+from Backend.audio_cache_manager import get_cached_audio, get_smalltalk_audio
+from Backend.smalltalk import detect_smalltalk
 from Backend.rag import HybridRetriever
+from Backend.rag.aliases import apply_aliases
 from Backend.history import HistoryManager
 from Backend.llm import QwenClient, build_qwen_prompt, StreamingSentenceSplitter
 from Backend.translate import translate
@@ -55,9 +57,12 @@ class SunaiConnectionManager:
         self.turn_sentence_counter = 0
         self.last_vad_end_time = time.time()
 
-        # LLM streaming task tracking & cancellation
+        # Task tracking & cancellation across turns
         self.llm_task: Optional[asyncio.Task] = None
         self.llm_cancel_event = asyncio.Event()
+        self.current_turn_tasks: list[asyncio.Task] = []
+        self.clear_ack_event = asyncio.Event()
+        self.clear_ack_event.set()  # Initial turn does not wait
 
         # State machine with client notification callback
         self.sm = SunaiStateMachine(
@@ -90,18 +95,48 @@ class SunaiConnectionManager:
         except Exception as e:
             logger.warning(f"[WS] Failed to send JSON message: {e}")
 
+    async def cancel_active_turn_tasks(self) -> None:
+        """Cancels all active tasks for the current turn and awaits termination."""
+        self.llm_cancel_event.set()
+        self.history.mark_interrupted()
+        tasks_to_cancel = [t for t in self.current_turn_tasks if not t.done()]
+        for t in tasks_to_cancel:
+            t.cancel()
+        if tasks_to_cancel:
+            logger.info(f"[WS] Awaiting cancellation of {len(tasks_to_cancel)} active turn tasks...")
+            await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+        self.current_turn_tasks.clear()
+        self.llm_task = None
+
     def on_interruption_stop(self) -> None:
         """Called when a real interruption is confirmed: cancels LLM immediately."""
-        logger.info("[WS] Real interruption detected: cancelling active LLM generation.")
-        self.cancel_llm()
+        logger.info("[WS] Real interruption detected: triggering immediate turn task cancellation.")
+        self.clear_ack_event.clear()
+        self.llm_cancel_event.set()
+        self.history.mark_interrupted()
+        asyncio.create_task(self.cancel_active_turn_tasks())
 
     def cancel_llm(self) -> None:
-        """Cancels active LLM generation task."""
+        """Cancels active LLM generation task (sync trigger)."""
         self.llm_cancel_event.set()
         if self.llm_task and not self.llm_task.done():
             self.llm_task.cancel()
             self.llm_task = None
         self.history.mark_interrupted()
+
+    async def wait_for_clear_ack(self, turn_id: int) -> None:
+        """Waits up to CLEAR_ACK_TIMEOUT_SEC for browser's clear_ack handshake."""
+        if not self.clear_ack_event.is_set():
+            try:
+                logger.info(
+                    f"[WS] Waiting up to {config.CLEAR_ACK_TIMEOUT_SEC}s for browser clear_ack before turn {turn_id}..."
+                )
+                await asyncio.wait_for(self.clear_ack_event.wait(), timeout=config.CLEAR_ACK_TIMEOUT_SEC)
+                logger.info(f"[WS] clear_ack received successfully for turn {turn_id}")
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"[WS] clear_ack wait timed out ({config.CLEAR_ACK_TIMEOUT_SEC}s) for turn {turn_id}; proceeding."
+                )
 
     async def start(self) -> None:
         """Initializes connection and session listeners."""
@@ -161,8 +196,33 @@ class SunaiConnectionManager:
         msg_type = data.get("type")
 
         if msg_type == "vad_start":
-            logger.info(f"[WS] vad_start received in state={self.sm.get_state()}")
-            await self.turn_manager.on_user_voice_start()
+            dur = data.get("duration_ms", 0.0)
+            pk = data.get("peak", 0.0)
+            rms = data.get("rms", 0.0)
+            sp = data.get("speech_probability", 1.0)
+            logger.info(
+                f"[WS Diagnostic] vad_start received in state={self.sm.get_state()} | "
+                f"duration={dur:.1f}ms, peak={pk:.3f}, RMS={rms:.4f}, speech_prob={sp:.2f}"
+            )
+            await self.turn_manager.on_user_voice_start(
+                duration_ms=dur,
+                peak=pk,
+                rms=rms,
+                speech_probability=sp,
+            )
+
+        elif msg_type == "blip_ignored":
+            logger.info(f"[WS] Noise blip ignored reported by browser VAD in mode={self.turn_manager.mode}.")
+            self.metrics_manager.record_blip_ignored(self.turn_manager.mode)
+            await self.send_json(self.metrics_manager.get_browser_payload(self.current_turn_id, self.turn_manager.mode))
+
+        elif msg_type == "set_language":
+            requested_lang = data.get("language", "indic-auto")
+            logger.info(f"[WS] Language override set to: {requested_lang}")
+            self.current_language = requested_lang
+            if self.stt_session:
+                await self.stt_session.set_language_override(requested_lang)
+            await self.send_json({"type": "language_set", "language": requested_lang})
 
         elif msg_type == "vad_end":
             logger.info(f"[WS] vad_end received in state={self.sm.get_state()}")
@@ -195,6 +255,11 @@ class SunaiConnectionManager:
             await self.send_json({"type": "mode_set", "mode": mode})
             await self.send_json(self.metrics_manager.get_browser_payload(self.current_turn_id, mode))
 
+        elif msg_type == "clear_ack":
+            ack_turn_id = data.get("turn_id")
+            logger.info(f"[WS] clear_ack received from browser for turn {ack_turn_id}")
+            self.clear_ack_event.set()
+
         elif msg_type == "set_stub_decision":
             dec = data.get("decision", "small_sound")
             self.turn_manager.set_stub_decision(dec)
@@ -202,11 +267,15 @@ class SunaiConnectionManager:
 
     async def on_turn_complete(self, finalized_text: Optional[str] = None) -> None:
         """Executes when user turn is finalized."""
+        # Ensure any active tasks from previous turn are cleanly cancelled and awaited
+        await self.cancel_active_turn_tasks()
+
         user_text = (
             finalized_text
             or self.turn_manager.last_finalized_text
             or self.turn_manager.current_user_text
         ).strip()
+        user_text = apply_aliases(user_text)
 
         # Reset STT transcript buffer so old text is not reused
         if self.stt_session:
@@ -312,6 +381,67 @@ class SunaiConnectionManager:
             "language": lang,
         })
 
+        # Part A: Small Talk Check (Runs right after final text, BEFORE translation and retrieval)
+        st_match = detect_smalltalk(user_text, lang)
+        if st_match is not None:
+            logger.info(
+                f"[WS] Small talk detected: intent='{st_match.intent}', matched='{st_match.matched_phrase}', "
+                f"lang='{st_match.target_lang}', variant={st_match.variant_idx}, reply='{st_match.reply_text}'"
+            )
+            self.metrics_manager.set_turn_attribute(turn_id, "intent", "smalltalk")
+            self.metrics_manager.set_turn_attribute(turn_id, "smalltalk_intent", st_match.intent)
+            self.metrics_manager.set_turn_attribute(turn_id, "smalltalk_phrase", st_match.matched_phrase)
+
+            self.history.add_assistant_sentence(st_match.reply_text, translated_text=st_match.reply_text)
+            self.history.finalize_current_turn()
+
+            # Empty sources for small talk
+            await self.send_json({"type": "sources", "sources": [], "refused": False, "smalltalk": True})
+
+            # Handshake: wait for clear_ack before sending audio
+            await self.wait_for_clear_ack(turn_id)
+            if turn_id != self.current_turn_id:
+                logger.warning(f"[WS] Dropping smalltalk audio: turn {turn_id} != current {self.current_turn_id}")
+                return
+
+            wav_bytes = get_smalltalk_audio(st_match, self.tts_client)
+            b64_audio = base64.b64encode(wav_bytes).decode("ascii")
+
+            sentence_id = 1
+            self.turn_manager.set_turn_last_sentence(turn_id, sentence_id)
+
+            self.sm.transition_to("SPEAKING", reason=f"smalltalk_{st_match.intent}")
+            await asyncio.sleep(0)
+            self.turn_manager.on_sentence_started(sentence_id)
+
+            now_ts = time.time()
+            self.metrics_manager.record_timestamp(turn_id, "first_sentence_ready", now_ts)
+            self.metrics_manager.record_timestamp(turn_id, "first_tts_audio", now_ts)
+            self.metrics_manager.record_timestamp(turn_id, "playback_start", now_ts)
+
+            logger.info(
+                f"[WS Audio] Sent clip sentence_id={sentence_id}, turn_id={turn_id}, "
+                f"source=cache_file:{st_match.cache_key}, is_last=True"
+            )
+            await self.send_json({
+                "type": "tts_audio",
+                "turn_id": turn_id,
+                "sentence_id": sentence_id,
+                "audio": b64_audio,
+                "text": st_match.reply_text,
+                "refused": False,
+                "kind": "sentence",
+                "is_last": True,
+                "source": f"cache_file:{st_match.cache_key}",
+            })
+
+            metric_rec = self.metrics_manager.finalize_turn(turn_id)
+            if metric_rec:
+                await self.send_json(
+                    self.metrics_manager.get_browser_payload(turn_id, self.turn_manager.mode, metric_rec.latencies_ms)
+                )
+            return
+
         # 1. Translate question to English if needed (Step 4 of Plan)
         if not lang.lower().startswith("en"):
             logger.info(f"[WS] Translating user question to English from {lang}...")
@@ -323,6 +453,7 @@ class SunaiConnectionManager:
             self.metrics_manager.record_timestamp(turn_id, "translation_done", t_final_text)
 
         # 2. RAG Hybrid Retrieval & Refusal Gate Check (Step 5 of Plan)
+        query_en = apply_aliases(query_en)
         retrieval = self.retriever.retrieve(query_en, top_k=config.RAG_TOP_K)
         self.metrics_manager.record_timestamp(turn_id, "retrieval_done", time.time())
 
@@ -337,6 +468,12 @@ class SunaiConnectionManager:
 
             # Send empty sources
             await self.send_json({"type": "sources", "sources": [], "refused": True})
+
+            # Wait for clear_ack handshake before sending refusal audio
+            await self.wait_for_clear_ack(turn_id)
+            if turn_id != self.current_turn_id:
+                logger.warning(f"[WS] Dropping refusal audio: turn {turn_id} != current {self.current_turn_id}")
+                return
 
             refusal_text = config.CACHE_PHRASES.get("not_in_docs", {}).get(
                 lang, config.CACHE_PHRASES["not_in_docs"]["hi-IN"]
@@ -382,15 +519,18 @@ class SunaiConnectionManager:
         await self.send_json({
             "type": "sources",
             "sources": retrieval.sources,
+            "titles": retrieval.titles,
+            "source_details": retrieval.source_details,
             "refused": False,
         })
 
         # 5. Launch streaming generation pipeline as tracked task
-        self.cancel_llm()
+        await self.cancel_active_turn_tasks()
         self.llm_cancel_event = asyncio.Event()
         self.llm_task = asyncio.create_task(
             self._generate_and_stream_response(query_en, retrieval.top_chunks, lang, turn_id)
         )
+        self.current_turn_tasks.append(self.llm_task)
 
     async def _please_wait_timer(self, lang: str, first_sent_event: asyncio.Event, turn_id: int) -> None:
         """Plays 'please wait' filler clip if first sentence takes longer than 1.5s."""
@@ -435,14 +575,20 @@ class SunaiConnectionManager:
     ) -> None:
         """
         Full pipeline:
-        Qwen stream -> sentence splitter -> translate each sentence -> Timbre synthesis -> send tts_audio.
+        Qwen stream -> sentence splitter -> serialized TTS queue -> Timbre synthesis -> send tts_audio.
         """
         first_token_recorded = False
         first_sent_recorded = False
-        first_tts_recorded = False
 
         first_sent_event = asyncio.Event()
         pw_task = asyncio.create_task(self._please_wait_timer(lang, first_sent_event, turn_id))
+        self.current_turn_tasks.append(pw_task)
+
+        sentence_queue: asyncio.Queue = asyncio.Queue()
+        tts_worker_task = asyncio.create_task(
+            self._tts_worker(turn_id, lang, sentence_queue, first_sent_event, pw_task)
+        )
+        self.current_turn_tasks.append(tts_worker_task)
 
         messages = build_qwen_prompt(
             question=query_en,
@@ -456,7 +602,7 @@ class SunaiConnectionManager:
         try:
             logger.info("[WS] Streaming response from Qwen with thinking OFF...")
             async for token in self.llm_client.stream_chat(messages, cancel_event=self.llm_cancel_event):
-                if self.llm_cancel_event.is_set():
+                if self.llm_cancel_event.is_set() or turn_id != self.current_turn_id:
                     break
 
                 if not first_token_recorded:
@@ -465,47 +611,27 @@ class SunaiConnectionManager:
 
                 ready_sentences = splitter.feed(token)
                 for sentence_en in ready_sentences:
-                    if self.llm_cancel_event.is_set():
+                    if self.llm_cancel_event.is_set() or turn_id != self.current_turn_id:
                         break
                     if not first_sent_recorded:
                         self.metrics_manager.record_timestamp(turn_id, "first_sentence_ready", time.time())
                         first_sent_recorded = True
 
                     dispatched_count += 1
-                    await self._dispatch_sentence(
-                        sentence_en,
-                        lang,
-                        first_sent_event,
-                        pw_task,
-                        turn_id,
-                        first_tts_recorded,
-                        sentence_id=dispatched_count,
-                        is_last=False,
-                    )
-                    first_tts_recorded = True
+                    await sentence_queue.put((sentence_en, False, dispatched_count))
 
             # Flush remaining sentences in buffer
-            if not self.llm_cancel_event.is_set():
+            if not self.llm_cancel_event.is_set() and turn_id == self.current_turn_id:
                 remaining = splitter.flush()
                 for remaining_en in remaining:
-                    if self.llm_cancel_event.is_set():
+                    if self.llm_cancel_event.is_set() or turn_id != self.current_turn_id:
                         break
                     if not first_sent_recorded:
                         self.metrics_manager.record_timestamp(turn_id, "first_sentence_ready", time.time())
                         first_sent_recorded = True
 
                     dispatched_count += 1
-                    await self._dispatch_sentence(
-                        remaining_en,
-                        lang,
-                        first_sent_event,
-                        pw_task,
-                        turn_id,
-                        first_tts_recorded,
-                        sentence_id=dispatched_count,
-                        is_last=False,
-                    )
-                    first_tts_recorded = True
+                    await sentence_queue.put((remaining_en, False, dispatched_count))
 
                 # Notify turn manager that generation is done and identify last sentence
                 logger.info(
@@ -519,6 +645,11 @@ class SunaiConnectionManager:
                     "turn_id": turn_id,
                     "last_sentence_id": dispatched_count,
                 })
+
+            # Signal worker that generation has concluded
+            await sentence_queue.put(None)
+            # Await completion of serialized TTS worker
+            await tts_worker_task
 
             self.history.finalize_current_turn()
             metric_rec = self.metrics_manager.finalize_turn(turn_id)
@@ -536,6 +667,61 @@ class SunaiConnectionManager:
         finally:
             if not pw_task.done():
                 pw_task.cancel()
+            if not tts_worker_task.done():
+                tts_worker_task.cancel()
+
+    async def _tts_worker(
+        self,
+        turn_id: int,
+        lang: str,
+        sentence_queue: asyncio.Queue,
+        first_sent_event: asyncio.Event,
+        pw_task: asyncio.Task,
+    ) -> None:
+        """Serialized worker: translates and synthesizes sentences strictly in order for turn_id."""
+        first_tts_recorded = False
+        try:
+            while True:
+                item = await sentence_queue.get()
+                if item is None:
+                    sentence_queue.task_done()
+                    break
+
+                sentence_en, is_last, sentence_id = item
+                sentence_queue.task_done()
+
+                # Guard: verify turn is still active
+                if turn_id != self.current_turn_id or self.llm_cancel_event.is_set():
+                    logger.warning(
+                        f"[WS] Dropping queued sentence #{sentence_id}: turn {turn_id} != current {self.current_turn_id} or cancelled."
+                    )
+                    break
+
+                # Handshake: before sending the first audio sentence, wait for clear_ack
+                if sentence_id == 1:
+                    await self.wait_for_clear_ack(turn_id)
+                    if turn_id != self.current_turn_id or self.llm_cancel_event.is_set():
+                        logger.warning(
+                            f"[WS] Dropping sentence #{sentence_id} after clear_ack wait: turn {turn_id} != current {self.current_turn_id}"
+                        )
+                        break
+
+                await self._dispatch_sentence(
+                    sentence_en,
+                    lang,
+                    first_sent_event,
+                    pw_task,
+                    turn_id,
+                    first_tts_recorded,
+                    sentence_id=sentence_id,
+                    is_last=is_last,
+                )
+                first_tts_recorded = True
+
+        except asyncio.CancelledError:
+            logger.info(f"[WS] TTS worker for turn {turn_id} cancelled.")
+        except Exception as e:
+            logger.error(f"[WS] TTS worker error for turn {turn_id}: {e}", exc_info=True)
 
     async def _dispatch_sentence(
         self,
@@ -553,6 +739,10 @@ class SunaiConnectionManager:
         if not clean_en:
             return
 
+        if turn_id != self.current_turn_id or self.llm_cancel_event.is_set():
+            logger.warning(f"[WS] Dropping dispatch #{sentence_id} for turn {turn_id} != current {self.current_turn_id}")
+            return
+
         # Mark first sentence ready to suppress 'please wait'
         first_sent_event.set()
         if not pw_task.done():
@@ -564,10 +754,22 @@ class SunaiConnectionManager:
         else:
             translated_text = clean_en
 
+        if turn_id != self.current_turn_id or self.llm_cancel_event.is_set():
+            logger.warning(
+                f"[WS] Dropping sentence #{sentence_id} post-translation: turn {turn_id} != current {self.current_turn_id}"
+            )
+            return
+
         logger.info(f"[WS] Synthesizing sentence #{sentence_id}: '{translated_text}' (lang={lang})")
 
         # 2. Synthesize via Timbre
         wav_bytes = self.tts_client.synthesize(translated_text, language=lang)
+        if turn_id != self.current_turn_id or self.llm_cancel_event.is_set():
+            logger.warning(
+                f"[WS] Dropping synthesized audio for #{sentence_id}: turn {turn_id} != current {self.current_turn_id}"
+            )
+            return
+
         b64_audio = base64.b64encode(wav_bytes).decode("ascii")
 
         now_ts = time.time()
@@ -588,6 +790,10 @@ class SunaiConnectionManager:
         )
 
         # 4. Dispatch tts_audio payload to client
+        if turn_id != self.current_turn_id or self.llm_cancel_event.is_set():
+            logger.warning(f"[WS] Dropping send_json for #{sentence_id}: turn {turn_id} != current {self.current_turn_id}")
+            return
+
         await self.send_json({
             "type": "tts_audio",
             "turn_id": turn_id,
@@ -603,7 +809,7 @@ class SunaiConnectionManager:
     async def cleanup(self) -> None:
         """Cleans up active resources on client disconnect."""
         logger.info("[WS] Cleaning up connection resources...")
-        self.cancel_llm()
+        await self.cancel_active_turn_tasks()
         if self.stt_session:
             await self.stt_session.close()
             self.stt_session = None

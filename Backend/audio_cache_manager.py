@@ -106,3 +106,71 @@ def get_cached_audio(phrase_key: str, language: str = "hi-IN") -> bytes:
         f"[AudioCache] Pre-recorded clip not found for {language}/{phrase_key}.wav or hi-IN fallback. "
         "Run 'python Backend/tools/generate_audio_cache.py' to generate."
     )
+
+
+def get_smalltalk_audio(match, tts_client=None) -> bytes:
+    """
+    Retrieves the pre-recorded audio bytes for a SmallTalkMatch.
+    1. Checks cache for match.cache_key in match.target_lang.
+    2. Falls back to hi-IN or en-IN in cache.
+    3. If still missing, synthesizes live using GnaniTTSClient (Timbre API).
+    4. Logs an ERROR if synthesis fails, and raises RuntimeError (no synthetic/beep fallback).
+    """
+    cache_dir = config.AUDIO_CACHE_DIR
+    target_lang = match.target_lang
+    phrase_key = match.cache_key
+
+    # 1. Primary lookup
+    file_path = cache_dir / target_lang / f"{phrase_key}.wav"
+    if file_path.exists():
+        return file_path.read_bytes()
+
+    # 2. Cache fallbacks
+    for fb_lang in ("hi-IN", "en-IN"):
+        fb_path = cache_dir / fb_lang / f"{phrase_key}.wav"
+        if fb_path.exists():
+            logger.warning(f"[AudioCache] Cache miss for smalltalk {target_lang}/{phrase_key}.wav; falling back to {fb_lang}.")
+            return fb_path.read_bytes()
+
+    # 3. Live synthesis fallback with Timbre API
+    logger.info(f"[AudioCache] Cache miss for {target_lang}/{phrase_key}.wav. Synthesizing live with Timbre...")
+    try:
+        from gnani.tts import GnaniTTSClient, AudioConfig
+        client = tts_client
+        if client is None:
+            if not config.GNANI_API_KEY:
+                raise ValueError("GNANI_API_KEY is not configured.")
+            client = GnaniTTSClient(api_key=config.GNANI_API_KEY)
+
+        timbre_lang = "hi-IN" if target_lang == "hinglish" else target_lang
+        voice = "Pranav" if target_lang == "en-IN" else "Devika"
+        audio_cfg = AudioConfig(
+            sample_rate=config.TIMBRE_SAMPLE_RATE,
+            encoding="linear_pcm",
+            num_channels=1,
+            sample_width=2,
+            container=config.TIMBRE_CONTAINER,
+        )
+
+        wav_bytes = client.synthesize(
+            text=match.reply_text,
+            voice=voice,
+            model=config.TIMBRE_MODEL,
+            language=timbre_lang,
+            speed=config.TIMBRE_SPEED,
+            audio_config=audio_cfg,
+        )
+
+        if not wav_bytes or len(wav_bytes) < 100:
+            raise ValueError(f"Synthesis returned invalid audio data ({len(wav_bytes) if wav_bytes else 0} bytes)")
+
+        # Persist to cache
+        target_dir = cache_dir / target_lang
+        target_dir.mkdir(parents=True, exist_ok=True)
+        file_path.write_bytes(wav_bytes)
+        logger.info(f"[AudioCache] Live synthesis succeeded and saved to {file_path}")
+        return wav_bytes
+
+    except Exception as e:
+        logger.error(f"[AudioCache] ERROR: Live Timbre synthesis failed for small talk '{match.reply_text}': {e}", exc_info=True)
+        raise RuntimeError(f"Failed to produce small talk audio for '{match.reply_text}': {e}") from e

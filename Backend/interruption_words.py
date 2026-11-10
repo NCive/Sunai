@@ -1,102 +1,131 @@
 """
-Interruption Word Lists for Sunai Assistant.
-Separate, editable repository for small sounds, go-on commands, stop words,
-and question starters across Hindi, Marathi, Hinglish, and English in both
-Roman and Devanagari scripts.
+Editable keyword dictionaries for deterministic interruption classification.
+Grouped by class and language (English, Hindi, Marathi, Hinglish) in Roman and Devanagari.
 """
 
-# -----------------------------------------------------------------------------
-# 1. SMALL SOUNDS / BACKCHANNELS (Category: "small_sound" -> Resume playback)
-# -----------------------------------------------------------------------------
-SMALL_SOUND_WORDS: set[str] = {
-    # English
-    "hmm", "hm", "mhm", "uh-huh", "uh huh", "uhuh", "huh", "um", "uh", "ok", "okay",
-    "yeah", "yep", "yes", "right", "got it", "sure", "yup", "alright", "cool",
+from typing import Dict, Set, List
 
-    # Hindi & Hinglish (Roman)
-    "haan", "ha", "haa", "haanji", "hanji", "accha", "achha", "achaa", "acha",
-    "theek", "theek hai", "thik", "thik hai", "ji", "ji haan", "sahi", "badhiya",
-    "sahi hai",
-
-    # Hindi (Devanagari)
-    "हाँ", "हूँ", "हं", "अच्छा", "जी", "जी हाँ", "हाँजी", "ठीक", "ठीक है",
-    "सही", "बढ़िया", "सही है",
-
-    # Marathi (Roman)
-    "ho", "hoy", "barobar", "theek", "chhan", "ji", "achha", "accha", "khare", "bar",
-
-    # Marathi (Devanagari)
-    "हो", "होय", "बरोबर", "ठीक", "छान", "जी", "बरं", "खरे", "बर",
+# Non-lexical acoustic filler sounds that should be treated as noise
+NON_LEXICAL_SOUNDS: Set[str] = {
+    "uh", "um", "ah", "er", "erm", "eh", "oh", "huh", "shh", "sh", "ts",
+    "uhh", "umm", "ahh", "err", "ohh", "ooh",
 }
 
-# -----------------------------------------------------------------------------
-# 2. GO-ON COMMANDS (Category: "go_on" -> Resume playback)
-# -----------------------------------------------------------------------------
-GO_ON_WORDS: set[str] = {
-    # English
-    "go on", "continue", "keep going", "carry on", "go ahead", "speak",
-    "tell me", "please continue", "keep talking", "next",
+# BACKCHANNEL (small_sound -> resume)
+# Single words and short multi-word backchannels
+BACKCHANNEL_WORDS: Set[str] = {
+    # English Roman
+    "ok", "okay", "o.k.", "okey", "k", "hmm", "hm", "mm", "mhm", "uh huh", "uh-huh",
+    "yes", "yeah", "yep", "yup", "sure", "right", "alright", "got it", "i see",
+    "understood", "fine", "cool", "great", "perfect",
 
-    # Hindi & Hinglish (Roman)
-    "aage bolo", "bolo aage", "aage batao", "batao aage", "batao", "bolo",
-    "chalu rakho", "aage", "aur bolo", "aage kya", "phir aage",
+    # Hindi / Hinglish Roman
+    "haan", "han", "haa", "ha", "ji", "haan ji", "haaji", "hanji", "accha", "achha",
+    "acha", "accha ji", "theek hai", "thik hai", "tik hai", "theek", "thik",
+    "samajh gaya", "samajh gayi", "sahi", "sahi hai", "hai",
 
-    # Hindi (Devanagari)
-    "आगे बोलो", "बोलो आगे", "आगे बताओ", "बताओ", "बोलो", "चालू रखो", "आगे",
-    "और बोलो", "फिर आगे",
+    # Marathi Roman
+    "barobar", "hoy", "hoy ji", "bara", "theek aahe", "thik ahe", "samajla",
+    "ho", "ho ka",
 
-    # Marathi (Roman)
-    "pudhe sanga", "sanga pudhe", "pudhe bola", "sanga", "chalu theva", "pudhe",
-    "bola pudhe", "aani pudhe",
-
-    # Marathi (Devanagari)
-    "पुढे सांगा", "सांगा", "पुढे बोला", "चालू ठेवा", "पुढे", "सांगा पुढे", "आणि पुढे",
+    # Devanagari (Hindi & Marathi)
+    "हाँ", "हां", "हूँ", "हूं", "जी", "अच्छा", "ठीक है", "ठीक", "हम्म", "ओके",
+    "बरोबर", "होय", "बरं", "ठीक आहे", "समझ गया", "समझ गयी", "समजलं",
+    "हो", "सही", "सही है", "अच्छा जी", "हांजी",
 }
 
-# -----------------------------------------------------------------------------
-# 3. STOP WORDS (Category: "interruption" -> Hard stop playback, new turn)
-# -----------------------------------------------------------------------------
-STOP_WORDS: set[str] = {
-    # English
-    "stop", "wait", "hold on", "hold up", "pause", "listen", "shut up", "quiet",
-    "halt", "hang on", "cancel", "dont", "don't",
+# GO_ON (continuation -> resume / play saved remaining sentences)
+GO_ON_PHRASES: List[str] = [
+    # English Roman
+    "go on", "continue", "carry on", "keep going", "proceed", "go ahead",
+    "tell me more", "next", "more", "keep talking",
 
-    # Hindi & Hinglish (Roman)
-    "ruko", "ruk", "rukna", "thahar", "chup", "suno", "sun", "are ruko", "bas",
-    "rok", "roko", "ruk jao", "thahro", "band karo", "mat bolo",
+    # Hindi / Hinglish Roman
+    "aage bolo", "bolo aage", "aage badho", "aage batao", "bolo", "phir", "fir", "aur batao",
+    "batao", "jaari rakho", "aur bolo", "aage sunao", "chalo aage", "haan bolo",
+    "haan aage", "haan aage bolo", "haan aur batao", "chalu rakho",
 
-    # Hindi (Devanagari)
-    "रुको", "रुक", "सुनो", "सुन", "चुप", "ठहरो", "बस", "रोको", "रुक जाओ",
-    "बंद करो", "मत बोलो",
+    # Marathi Roman
+    "pudhe bola", "pudhe sanga", "sang", "pudhe ja", "aani", "aani sanga",
+    "chala pudhe", "chalu theva",
 
-    # Marathi (Roman)
-    "thamba", "thamb", "aika", "aik", "thaamba", "thamba jara", "band kara",
-    "shant raha", "bolu naka",
+    # Devanagari (Hindi & Marathi)
+    "आगे बोलो", "आगे बढ़ो", "आगे बताओ", "बोलो", "फिर", "जारी रखो", "चालू रखो",
+    "और बताओ", "और बोलो", "बताओ", "पुढे बोला", "पुढे सांगा", "सांगा",
+    "पुढे जा", "पुढे चालवा", "हं बोला", "सांगा पुढे", "चालू ठेवा",
+]
 
-    # Marathi (Devanagari)
-    "थांबा", "थांब", "ऐका", "ऐक", "थांबा जरा", "बंद करा", "शांत राहा", "बोलू नका",
+# STOP (interruption -> hard stop)
+STOP_WORDS: Set[str] = {
+    # English Roman
+    "stop", "wait", "hold on", "one second", "one sec", "pause", "enough",
+    "shut up", "quiet", "cancel", "listen", "hang on", "wait a minute", "wait wait",
+
+    # Hindi / Hinglish Roman
+    "ruko", "ruk jao", "ruk", "rukiye", "bas", "bas karo", "mat bolo",
+    "ek second", "ek minute", "chup", "suno", "roko", "rukna",
+
+    # Marathi Roman
+    "thamba", "thaamb", "thamb", "purna kara", "band kara", "aik", "aika",
+
+    # Devanagari (Hindi & Marathi)
+    "रुको", "रुकिए", "रुक जाओ", "बस", "बस करो", "रुक", "सुनो",
+    "थांब", "थांबा", "बंद करा", "ऐका", "ऐक", "शांत बसा",
 }
 
-# -----------------------------------------------------------------------------
-# 4. QUESTION STARTERS (Category: "interruption" -> Hard stop playback, new turn)
-# -----------------------------------------------------------------------------
-QUESTION_STARTERS: set[str] = {
-    # English
+# QUESTION_WORDS (interruption -> hard stop / new question)
+QUESTION_WORDS: Set[str] = {
+    # English Roman
     "what", "why", "how", "when", "where", "who", "which", "whose", "whom",
-    "can", "could", "is", "are", "do", "does", "did", "tell", "will", "would",
-    "should", "explain",
+    "can", "could", "would", "should", "will", "is", "are", "do", "does", "did",
+    "tell", "explain", "give", "help",
 
-    # Hindi & Hinglish (Roman)
-    "kya", "kyun", "kyu", "kaise", "kab", "kahan", "kaun", "kiska", "kitna",
-    "batao", "samjhao",
+    # Hindi / Hinglish Roman
+    "kya", "kyun", "kyu", "kaise", "kab", "kahan", "kaun", "kitna", "kitni", "kitne",
+    "kisko", "kiska", "bataiye", "batao na", "samjhao",
 
-    # Hindi (Devanagari)
-    "क्या", "क्यों", "कैसे", "कब", "कहाँ", "कौन", "किसका", "कितना", "बताओ", "समझाओ",
+    # Marathi Roman
+    "kay", "kasa", "kashi", "kase", "kuthe", "konta", "konti", "konte", "kevha",
+    "kiti", "kon",
 
-    # Marathi (Roman)
-    "kay", "kashala", "kashe", "kadhi", "kuthe", "kon", "konache", "kitpat",
-    "kiti", "sanga", "spasht kara",
-
-    # Marathi (Devanagari)
-    "काय", "कशाला", "कसे", "कधी", "कुठे", "कोण", "कोणाचे", "किती", "सांगा", "स्पष्ट करा",
+    # Devanagari (Hindi & Marathi)
+    "क्या", "क्यों", "क्यूं", "कैसे", "कब", "कहाँ", "कहा", "कौन", "कितना", "कितनी", "कितने",
+    "काय", "कसा", "कशी", "कसे", "कुठे", "कोणता", "कोणती", "कोणते", "केव्हा", "किती", "कोण",
 }
+
+# Explicit variants and common STT typos mapped directly
+EXPLICIT_VARIANTS: Dict[str, str] = {
+    # Backchannel typos
+    "okie": "okay",
+    "okk": "okay",
+    "okkay": "okay",
+    "yaa": "yeah",
+    "yah": "yeah",
+    "yea": "yeah",
+    "hmmm": "hmm",
+    "hmmmm": "hmm",
+    "haanji": "haan ji",
+    "hanjee": "haan ji",
+    "theekh": "theek",
+    "thikk": "theek",
+    "achaa": "accha",
+    "achha": "accha",
+    "acha": "accha",
+
+    # Go-on typos
+    "cont": "continue",
+    "contine": "continue",
+    "aagey": "aage",
+    "boloo": "bolo",
+
+    # Stop typos
+    "waitt": "wait",
+    "waii": "wait",
+    "rukoo": "ruko",
+    "thaamba": "thamba",
+}
+
+# Aliases for backward compatibility
+SMALL_SOUND_WORDS = BACKCHANNEL_WORDS
+GO_ON_WORDS = set(GO_ON_PHRASES)
+QUESTION_STARTERS = QUESTION_WORDS

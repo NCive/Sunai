@@ -25,9 +25,16 @@ class PrismaSTTSession:
     Manages an active streaming STT session connected to Gnani Prisma v3.0.
     """
 
-    def __init__(self, on_transcript: TranscriptCallback):
+    def __init__(
+        self,
+        on_transcript: TranscriptCallback,
+        language: Optional[str] = None,
+        language_override: Optional[str] = None,
+    ):
         """
         :param on_transcript: Callback called with (text, detected_language, is_final)
+        :param language: Initial language hint or code override
+        :param language_override: Explicit language code override
         """
         self.on_transcript = on_transcript
         self.client: Optional[GnaniSTTStreamClient] = None
@@ -35,30 +42,56 @@ class PrismaSTTSession:
         self._receive_task: Optional[asyncio.Task] = None
         self._audio_queue: Optional[asyncio.Queue[Optional[bytes]]] = None
         self.detected_language: Optional[str] = None
+        self.sticky_language: Optional[str] = None
+        resolved_override = language_override or language
+        self.language_override: Optional[str] = (
+            resolved_override if resolved_override and resolved_override != "indic-auto" else None
+        )
         self.accumulated_text: str = ""
+
+    async def set_language_override(self, language: str) -> None:
+        """Sets explicit user language preference (e.g. 'en-IN', 'hi-IN', 'mr-IN', 'indic-auto')."""
+        self.language_override = language if language != "indic-auto" else None
+        logger.info(f"[PrismaSTT] Language override set to: {self.language_override or 'indic-auto'}")
+        if self.is_connected:
+            await self.close()
+            await self.start()
 
     async def start(self) -> None:
         """Connects the WebSocket stream to Prisma v3.0."""
         self._audio_queue = asyncio.Queue()
-        if not config.GNANI_API_KEY:
-            logger.warning("[PrismaSTT] No GNANI_API_KEY found. Running in offline/mock mode.")
+        if config.SUNAI_MOCK_GNANI or not config.GNANI_API_KEY:
+            logger.warning("[PrismaSTT] Running in offline/mock mode.")
             self.is_connected = True
             self._receive_task = asyncio.create_task(self._mock_receive_loop())
             return
 
         try:
-            # Model prisma-v3.0 with multi-language candidates
+            # Resolve language code and candidates with sticky language logic
+            if self.language_override:
+                lang_code = self.language_override
+                candidates = None
+            elif self.sticky_language and self.sticky_language in ("hi-IN", "mr-IN", "en-IN"):
+                lang_code = "indic-auto"
+                # Prioritize sticky language candidate
+                candidates = [self.sticky_language, "en-IN"] if self.sticky_language != "en-IN" else ["en-IN", "hi-IN"]
+            else:
+                lang_code = config.PRISMA_DEFAULT_LANGUAGE
+                candidates = config.PRISMA_CANDIDATE_LANGUAGES
+
+            # Model prisma-v3.0 with keywords boosting
             self.client = GnaniSTTStreamClient(
                 api_key=config.GNANI_API_KEY,
-                language_code=config.PRISMA_DEFAULT_LANGUAGE,
-                language_candidates=config.PRISMA_CANDIDATE_LANGUAGES,
+                language_code=lang_code,
+                language_candidates=candidates,
+                keywords=getattr(config, "PRISMA_KEYWORDS", None),
                 model=config.PRISMA_MODEL,
                 sample_rate=config.PRISMA_SAMPLE_RATE,
                 format=config.PRISMA_FORMAT,
             )
             await self.client.connect()
             self.is_connected = True
-            logger.info("[PrismaSTT] Connected to Prisma v3.0 streaming endpoint.")
+            logger.info(f"[PrismaSTT] Connected to Prisma v3.0 (lang={lang_code}, candidates={candidates}).")
             self._receive_task = asyncio.create_task(self._receive_loop())
         except Exception as e:
             logger.error(f"[PrismaSTT] Connection failed: {e}")

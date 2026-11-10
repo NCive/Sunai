@@ -8,8 +8,10 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env file from Sunai root or Backend directory
+# Project Root Directory
 root_dir = Path(__file__).resolve().parent.parent
+
+# Load .env file from Sunai root or Backend directory
 env_path = root_dir / ".env"
 if env_path.exists():
     load_dotenv(env_path)
@@ -17,12 +19,20 @@ else:
     load_dotenv()
 
 # Server Settings
-HOST: str = "0.0.0.0"
-PORT: int = 8000
+HOST: str = os.getenv("SUNAI_HOST", os.getenv("HOST", "0.0.0.0"))
+PORT: int = int(os.getenv("SUNAI_PORT", os.getenv("PORT", "8000")))
 WS_PATH: str = "/ws"
+SUNAI_LOG_LEVEL: str = os.getenv("SUNAI_LOG_LEVEL", "INFO")
 
-# Gnani Cloud API Credentials
+# Development / Testing Flags
+SUNAI_MOCK_GNANI: bool = os.getenv("SUNAI_MOCK_GNANI", "false").lower() in ("true", "1", "yes")
+DEFAULT_MODE: str = os.getenv("SUNAI_MODE_DEFAULT", "pause_first")
+
+# Gnani Cloud API Credentials & Endpoints
 GNANI_API_KEY: str = os.getenv("GNANI_API_KEY", "")
+GNANI_TOKEN_URL: str = os.getenv("GNANI_TOKEN_URL", "https://token.gnani.ai/token")
+GNANI_ASR_WS_URL: str = os.getenv("GNANI_ASR_WS_URL", "wss://asr.gnani.ai/listen")
+GNANI_TTS_HTTP_URL: str = os.getenv("GNANI_TTS_HTTP_URL", "https://tts.gnani.ai/synthesize")
 
 # STT (Prisma v3.0) Configuration
 PRISMA_MODEL: str = "prisma-v3.0"
@@ -31,6 +41,13 @@ PRISMA_CANDIDATE_LANGUAGES: list[str] = ["hi-IN", "mr-IN", "en-IN"]
 PRISMA_SAMPLE_RATE: int = 16000
 PRISMA_FORMAT: str = "transcribe"
 PRISMA_CHUNK_SIZE: int = 1024
+PRISMA_KEYWORDS: list[str] = [
+    "Gnani", "Gnani.ai", "Prisma", "Timbre", "Armour365", "Inya", "Inya Workforce",
+    "Inya Assist", "Inya Insights", "Inya DIY", "Vachana", "TVS Credit", "Bajaj Allianz", "Razorpay"
+]
+PAUSE_PRISMA_TEXT_WAIT_SEC: float = 1.2
+STT_MIN_CONFIDENCE_THRESHOLD: float = 0.50
+VAD_SPEECH_PROB_UNCLEAR_THRESHOLD: float = 0.70
 
 # TTS (Timbre) Configuration
 TIMBRE_MODEL: str = "timbre-v2.5"
@@ -50,13 +67,12 @@ PAUSE_FIRST_CHECK_MS: int = 400
 SAFETY_TURN_LIMIT_SEC: int = 20
 FINAL_TRANSCRIPT_TIMEOUT_SEC: float = 1.5
 TEXT_FINISHED_MIN_CHARS: int = 3
+SMALLTALK_MAX_WORDS: int = 6
+CLEAR_ACK_TIMEOUT_SEC: float = 0.3
 ENABLE_STUB_DECISIONS: bool = False
 STUB_CLASSIFIER_DECISION: str = "small_sound"  # Kept for backward compatibility
 IDLE_CHECK_FIRST_TIMEOUT_SEC: float = 10.0
 IDLE_CHECK_SECOND_TIMEOUT_SEC: float = 10.0
-
-# Operating Mode: "pause_first" or "baseline"
-DEFAULT_MODE: str = "pause_first"
 
 # ---------------------------------------------------------------------
 # Module 4: Interruption Classifier & Acoustic Thresholds
@@ -86,8 +102,12 @@ UNCLEAR_REPEAT_SLOWLY: dict[str, str] = {
 # ---------------------------------------------------------------------
 # Module 5: RAG & Refusal Gate Configuration
 # ---------------------------------------------------------------------
-DOCUMENTS_DIR: Path = Path(__file__).resolve().parent / "documents"
-MINILM_MODEL_PATH: Path = root_dir / "Models/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+RAG_DOCS_DIR: Path = Path(os.getenv("SUNAI_DOCS_DIR", str(root_dir / "docs")))
+DOCUMENTS_DIR: Path = RAG_DOCS_DIR  # Alias for backward compatibility
+MINILM_MODEL_PATH: Path = Path(os.getenv(
+    "MINILM_MODEL_PATH",
+    str(root_dir / "Models/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/1110a243fdf4706b3f48f1d95db1a4f5529b4d41")
+))
 MINILM_MAX_SEQ_LENGTH: int = 256
 BM25_K1: float = 1.5
 BM25_B: float = 0.75
@@ -95,12 +115,13 @@ RAG_RRF_K: int = 60
 RAG_TOP_K: int = 3
 
 # Refusal Gate Thresholds (Raw scores: refuse ONLY if BOTH are below)
-# Tuned via Backend/tune_rag.py on on-topic vs off-topic distributions
+# Tuned via tests/tools/tune_rag.py on on-topic vs off-topic distributions
 RAG_VECTOR_SIMILARITY_THRESHOLD: float = 0.35
-RAG_BM25_THRESHOLD: float = 6.50
+RAG_BM25_THRESHOLD: float = 9.80
+ALIAS_FUZZY_EDIT_DISTANCE: int = 1
 
 # Audio Cache Configuration
-AUDIO_CACHE_DIR: Path = Path(__file__).resolve().parent / "audio_cache"
+AUDIO_CACHE_DIR: Path = Path(os.getenv("SUNAI_AUDIO_CACHE_DIR", str(Path(__file__).resolve().parent / "audio_cache")))
 
 # Pre-recorded Cache Phrases (Section 12 / 14)
 # In Devanagari for Indic accuracy, and English
@@ -154,9 +175,15 @@ FIXED_REPLY_TEXT: dict[str, str] = {
 # Module 6: LLM (Qwen via llama.cpp), Sentence Splitting & Translation
 # ---------------------------------------------------------------------
 LLAMA_SERVER_URL: str = os.getenv("LLAMA_SERVER_URL", "http://127.0.0.1:8080")
-LLAMA_SERVER_BIN: Path = Path(r"C:\Users\neild\AppData\Local\Microsoft\WinGet\Packages\ggml.llamacpp_Microsoft.Winget.Source_8wekyb3d8bbwe\llama-server.exe")
-QWEN_GGUF_MODEL_PATH: Path = root_dir / "Models/hub/models--unsloth--Qwen3.5-4B-GGUF/snapshots/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-UD-Q5_K_XL.gguf"
-LLM_CONTEXT_SIZE: int = 1024
+LLAMA_SERVER_BIN: Path = Path(os.getenv("LLAMA_SERVER_BIN", "llama-server"))
+QWEN_GGUF_MODEL_PATH: Path = Path(os.getenv(
+    "QWEN_GGUF_MODEL_PATH",
+    str(root_dir / "Models/hub/models--unsloth--Qwen3.5-4B-GGUF/snapshots/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-UD-Q5_K_XL.gguf")
+))
+LLM_CTX_SIZE: int = int(os.getenv("LLM_CTX_SIZE", "1024"))
+LLM_CONTEXT_SIZE: int = LLM_CTX_SIZE
+LLM_N_THREADS: int = int(os.getenv("LLM_N_THREADS", "8"))
+LLM_N_GPU_LAYERS: int = int(os.getenv("LLM_N_GPU_LAYERS", "0"))
 LLM_MAX_TOKENS: int = 160
 LLM_TEMPERATURE: float = 0.0
 LLM_ENABLE_THINKING: bool = False
@@ -167,10 +194,23 @@ HISTORY_MAX_TURNS: int = 4
 # ---------------------------------------------------------------------
 # Module 7: Metrics, Logging & Mode Comparison
 # ---------------------------------------------------------------------
-METRICS_LOG_DIR: Path = Path(__file__).resolve().parent / "logs"
-METRICS_LOG_FILE: Path = METRICS_LOG_DIR / "metrics.jsonl"
+METRICS_LOG_DIR: Path = Path(os.getenv("SUNAI_METRICS_LOG_DIR", str(Path(__file__).resolve().parent / "logs")))
+METRICS_LOG_FILE: Path = Path(os.getenv("SUNAI_METRICS_LOG", str(METRICS_LOG_DIR / "metrics.jsonl")))
 INTERRUPTIONS_LOG_FILE: Path = METRICS_LOG_DIR / "interruptions.jsonl"
 DEFAULT_TIME_TO_PAUSE_MS: float = 45.0  # Typical browser-side VAD audio pause latency
 
 
-
+def validate_config() -> None:
+    """
+    Validates essential configuration settings at application startup.
+    Fails fast with actionable guidance if credentials or resources are missing.
+    """
+    if not SUNAI_MOCK_GNANI and not GNANI_API_KEY:
+        raise RuntimeError(
+            "GNANI_API_KEY is not set. Copy .env.example to .env and set your key."
+        )
+    if not RAG_DOCS_DIR.exists():
+        raise RuntimeError(
+            f"Knowledge base directory '{RAG_DOCS_DIR}' does not exist. "
+            "Please create the docs directory and add knowledge documents (.md or .txt)."
+        )

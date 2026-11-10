@@ -1,6 +1,6 @@
 """
 Document Ingestion and Chunking for Sunai RAG.
-Reads English text and markdown documents from Backend/documents/,
+Reads English text and markdown documents from the docs/ knowledge base,
 splits them into short paragraph chunks, and verifies they fit within
 the MiniLM-L6-v2 maximum sequence length (256 tokens).
 """
@@ -8,7 +8,7 @@ the MiniLM-L6-v2 maximum sequence length (256 tokens).
 import os
 import re
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional
 from Backend import config
@@ -23,6 +23,45 @@ class DocumentChunk:
     doc_name: str
     text: str
     token_count: int
+    title: Optional[str] = None
+    source_urls: List[str] = field(default_factory=list)
+
+
+def extract_front_matter(raw_text: str) -> tuple[Optional[str], List[str], str]:
+    """
+    Extracts title, source_urls, and body text from markdown front matter.
+    Format:
+    ---
+    title: <Title>
+    source_urls:
+      - <url>
+    retrieved_date: YYYY-MM-DD
+    ---
+    Returns: (title, source_urls, body_text)
+    """
+    title = None
+    source_urls: List[str] = []
+    body_text = raw_text
+
+    fm_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", raw_text, re.DOTALL)
+    if fm_match:
+        fm_content = fm_match.group(1)
+        body_text = raw_text[fm_match.end():]
+
+        # Extract title
+        title_match = re.search(r"^title:\s*(.+)$", fm_content, re.MULTILINE)
+        if title_match:
+            title = title_match.group(1).strip().strip("\"'")
+
+        # Extract source_urls list
+        urls_match = re.search(r"source_urls:\s*\n((?:\s*-\s*.+\n?)+)", fm_content)
+        if urls_match:
+            for url_line in urls_match.group(1).splitlines():
+                cleaned_url = re.sub(r"^\s*-\s*", "", url_line).strip().strip("\"'")
+                if cleaned_url:
+                    source_urls.append(cleaned_url)
+
+    return title, source_urls, body_text
 
 
 def clean_markdown_headers(text: str) -> str:
@@ -71,13 +110,31 @@ class DocumentIngester:
         chunks: List[DocumentChunk] = []
 
         if not self.documents_dir.exists():
-            logger.warning(f"[RAG Ingest] Documents directory {self.documents_dir} does not exist.")
-            return chunks
+            raise RuntimeError(
+                f"[RAG Ingest] Documents directory '{self.documents_dir}' does not exist. "
+                "Please ensure the docs directory exists and contains knowledge base files (.md or .txt)."
+            )
 
+        # Ingest only top-level files in docs/ (non-recursive, skip project/ and README)
         doc_files = sorted(
-            [f for f in self.documents_dir.iterdir() if f.suffix.lower() in (".md", ".txt")]
+            [
+                f for f in self.documents_dir.iterdir()
+                if f.is_file()
+                and f.suffix.lower() in (".md", ".txt")
+                and f.name.lower() != "readme.md"
+            ]
         )
-        logger.info(f"[RAG Ingest] Found {len(doc_files)} document files in {self.documents_dir}")
+
+        if not doc_files:
+            raise RuntimeError(
+                f"[RAG Ingest] No .md or .txt document files found in '{self.documents_dir}'. "
+                "Please place knowledge base documents in the docs directory."
+            )
+
+        logger.info(
+            f"[RAG Ingest] Ingesting {len(doc_files)} document files from {self.documents_dir}: "
+            f"{[f.name for f in doc_files]}"
+        )
 
         for file_path in doc_files:
             try:
@@ -86,7 +143,8 @@ class DocumentIngester:
                 logger.error(f"[RAG Ingest] Failed to read {file_path}: {e}")
                 continue
 
-            cleaned_text = clean_markdown_headers(raw_text)
+            title, source_urls, body_text = extract_front_matter(raw_text)
+            cleaned_text = clean_markdown_headers(body_text)
             # Split on double newlines to separate paragraphs
             raw_paragraphs = [p.strip() for p in re.split(r"\n\s*\n", cleaned_text) if p.strip()]
 
@@ -116,6 +174,8 @@ class DocumentIngester:
                                         doc_name=file_path.name,
                                         text=current_sub,
                                         token_count=self.count_tokens(current_sub),
+                                        title=title,
+                                        source_urls=source_urls,
                                     )
                                 )
                                 chunk_idx += 1
@@ -127,6 +187,8 @@ class DocumentIngester:
                                 doc_name=file_path.name,
                                 text=current_sub,
                                 token_count=self.count_tokens(current_sub),
+                                title=title,
+                                source_urls=source_urls,
                             )
                         )
                         chunk_idx += 1
@@ -137,6 +199,8 @@ class DocumentIngester:
                             doc_name=file_path.name,
                             text=uniform_para,
                             token_count=tok_count,
+                            title=title,
+                            source_urls=source_urls,
                         )
                     )
                     chunk_idx += 1

@@ -66,6 +66,9 @@ class ModeStats:
     total_interruptions: int = 0
     wrong_stops: int = 0
     wrong_non_stops: int = 0
+    noise_blip_ignored: int = 0
+    noise_resumed: int = 0
+    wrong_stop: int = 0
     response_delays: List[float] = field(default_factory=list)
     time_to_pauses: List[float] = field(default_factory=list)
 
@@ -99,6 +102,9 @@ class ModeStats:
             "total_interruptions": self.total_interruptions,
             "wrong_stops": self.wrong_stops,
             "wrong_non_stops": self.wrong_non_stops,
+            "noise_blip_ignored": self.noise_blip_ignored,
+            "noise_resumed": self.noise_resumed,
+            "wrong_stop": self.wrong_stop or self.wrong_stops,
             "wrong_stop_rate_pct": round(self.wrong_stop_rate, 1),
             "wrong_non_stop_rate_pct": round(self.wrong_non_stop_rate, 1),
             "avg_response_delay_ms": round(self.avg_response_delay_ms, 1),
@@ -300,6 +306,16 @@ class MetricsManager:
 
         self._write_json_line(self.interruptions_file, asdict(record))
         return record
+
+    def record_blip_ignored(self, mode: str = "pause_first") -> None:
+        """Records a momentary noise blip that was successfully ignored without pausing."""
+        if mode in self.stats:
+            self.stats[mode].noise_blip_ignored += 1
+
+    def record_noise_resumed(self, mode: str = "pause_first") -> None:
+        """Records a pause that was resumed after classification identified noise/non-speech."""
+        if mode in self.stats:
+            self.stats[mode].noise_resumed += 1
 
     def get_browser_payload(
         self,

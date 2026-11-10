@@ -47,6 +47,10 @@ export const App: React.FC = () => {
   const [isRefused, setIsRefused] = useState<boolean>(false);
   const [metricsData, setMetricsData] = useState<MetricsPayload | null>(null);
 
+  // Noise calibration
+  const [noiseFloor, setNoiseFloor] = useState<number>(CONFIG.vad.calibratedNoiseFloor);
+  const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
+
   // PlayQueue status
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [activeSentenceId, setActiveSentenceId] = useState<number | string | null>(null);
@@ -65,6 +69,7 @@ export const App: React.FC = () => {
   const playQueueRef = useRef<PlayQueue | null>(null);
   const wsClientRef = useRef<SunaiWebSocketClient | null>(null);
   const interruptionModeRef = useRef<'pause_first' | 'baseline'>('pause_first');
+  const currentTurnIdRef = useRef<number>(0);
 
   const [micAnalyser, setMicAnalyser] = useState<AnalyserNode | null>(null);
   const [playAnalyser, setPlayAnalyser] = useState<AnalyserNode | null>(null);
@@ -116,6 +121,7 @@ export const App: React.FC = () => {
     ws.onStateChange = (nextState) => {
       console.log(`[App] Server transitioned state to: ${nextState}`);
       setSphereState(nextState);
+      vadRef.current?.setAssistantSpeaking(nextState === 'SPEAKING');
       if (nextState === 'PAUSED') {
         setIsInterrupted(true);
       }
@@ -133,6 +139,15 @@ export const App: React.FC = () => {
 
     ws.onTtsAudio = (sentenceId, audioBuffer, replyText, turnId, kind) => {
       console.log(`[App] Received TTS audio for sentence ${sentenceId} (turn=${turnId}, kind=${kind}): ${replyText}`);
+      if (typeof turnId === 'number') {
+        if (turnId < currentTurnIdRef.current) {
+          console.warn(`[App] Dropping late audio for old turn ${turnId} (current=${currentTurnIdRef.current})`);
+          return;
+        }
+        if (turnId > currentTurnIdRef.current) {
+          currentTurnIdRef.current = turnId;
+        }
+      }
       // If real sentence arrives and filler is playing, immediately abort filler (Bug 3 fix)
       if (kind !== 'filler' && sentenceId !== 0) {
         pq.stopCurrentIfFiller();
@@ -173,10 +188,19 @@ export const App: React.FC = () => {
       setSphereState('SPEAKING');
     };
 
-    ws.onClearQueue = () => {
-      console.log('[App] Received clear_queue command from backend.');
+    ws.onClearQueue = (turnId?: number) => {
+      console.log(`[App] Received clear_queue command from backend (turnId=${turnId}).`);
       pq.clear();
+      setQueueLength(0);
+      setIsPlayingAudio(false);
       setSphereState('LISTENING');
+      if (typeof turnId === 'number') {
+        currentTurnIdRef.current = turnId;
+      }
+      // Send clear_ack handshake back to backend
+      if (wsClientRef.current) {
+        wsClientRef.current.sendClearAck(turnId);
+      }
     };
 
     ws.onSources = (sources, refused) => {
@@ -257,11 +281,13 @@ export const App: React.FC = () => {
 
         const analyser = capture.getAnalyser();
         if (analyser) {
-          vad.start(
+          vad.setAssistantSpeaking(sphereState === 'SPEAKING');
+          await vad.start(
             analyser,
-            () => {
-              console.log('VAD: Voice Start');
+            (meta) => {
+              console.log('[App] VAD Stage 2 Voice Start confirmed:', meta);
               setIsSpeakingVad(true);
+              micCaptureRef.current?.setVoiceActive(true);
 
               // Instant browser pause if audio is playing (Section 6 & 8)
               if (playQueueRef.current && playQueueRef.current.getIsPlaying()) {
@@ -278,12 +304,34 @@ export const App: React.FC = () => {
                 }
               }
 
-              wsClientRef.current?.sendVadStart();
+              wsClientRef.current?.sendVadStart(meta);
             },
             () => {
-              console.log('VAD: Voice End');
+              console.log('[App] VAD Voice End');
               setIsSpeakingVad(false);
+              micCaptureRef.current?.setVoiceActive(false);
               wsClientRef.current?.sendVadEnd();
+            },
+            (duckVol) => {
+              console.log(`[App] VAD Stage 1: Initial voice frame -> Ducking bot volume to ${(duckVol * 100).toFixed(0)}%`);
+              playQueueRef.current?.duck(duckVol);
+            },
+            () => {
+              console.log('[App] VAD Sound blip ceased -> Restoring bot volume to 100%');
+              playQueueRef.current?.unduck();
+            },
+            () => {
+              if (playQueueRef.current?.getIsPlaying()) {
+                if (interruptionModeRef.current === 'pause_first') {
+                  playQueueRef.current.pause();
+                } else {
+                  playQueueRef.current.clear();
+                }
+              }
+            },
+            () => {
+              console.log('[App] VAD Noise blip ignored without pause');
+              wsClientRef.current?.sendBlipIgnored();
             }
           );
         }
@@ -297,7 +345,25 @@ export const App: React.FC = () => {
         alert('Microphone access denied or unavailable: ' + (err as Error).message);
       }
     }
-  }, [isMicOn]);
+  }, [isMicOn, sphereState]);
+
+  const handleCalibrateNoise = async () => {
+    if (!vadRef.current || isCalibrating) return;
+    setIsCalibrating(true);
+    try {
+      const floor = await vadRef.current.calibrateSilence();
+      setNoiseFloor(floor);
+    } catch (err) {
+      console.warn('[App] Noise calibration failed:', err);
+    } finally {
+      setIsCalibrating(false);
+    }
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    setDetectedLanguage(lang);
+    wsClientRef.current?.sendLanguageOverride(lang);
+  };
 
   // Audio PlayQueue test helpers
   const handleEnqueueSentence = (id: number, duration: number, freq: number) => {
@@ -450,7 +516,11 @@ export const App: React.FC = () => {
           micEnergy={micEnergy}
           isSpeakingVad={isSpeakingVad}
           micChunksCount={micChunksCount}
+          noiseFloor={noiseFloor}
+          isCalibrating={isCalibrating}
+          onCalibrateNoise={handleCalibrateNoise}
           detectedLanguage={detectedLanguage}
+          onLanguageChange={handleLanguageChange}
           sources={activeSources}
           isRefused={isRefused}
           stubDecision={stubDecision}

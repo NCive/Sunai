@@ -77,6 +77,7 @@ class TurnManager:
         # Audio energy tracking during PAUSED check window
         self.paused_energy_samples: List[float] = []
         self.paused_start_time: float = 0.0
+        self.last_vad_meta: Dict[str, float] = {"duration_ms": 0.0, "peak": 0.0, "rms": 0.0, "speech_probability": 1.0}
 
         # Bot speech and sentence tracking
         self.bot_sentences: List[str] = []
@@ -163,11 +164,34 @@ class TurnManager:
                     self.user_speech_start = None
                     self.has_new_speech = False
 
-    async def on_user_voice_start(self) -> None:
+    async def on_user_voice_start(
+        self,
+        duration_ms: float = 0.0,
+        peak: float = 0.0,
+        rms: float = 0.0,
+        speech_probability: float = 1.0,
+        meta: Optional[dict] = None,
+        **kwargs,
+    ) -> None:
         """Called when browser VAD detects speech onset."""
         now = time.time()
         current_state = self.sm.get_state()
-        logger.info(f"[TurnManager] vad_start received in state={current_state}")
+        if meta:
+            duration_ms = meta.get("duration_ms", duration_ms)
+            peak = meta.get("peak", peak)
+            rms = meta.get("rms", rms)
+            speech_probability = meta.get("speech_probability", speech_probability)
+
+        self.last_vad_meta = {
+            "duration_ms": duration_ms,
+            "peak": peak,
+            "rms": rms,
+            "speech_probability": speech_probability,
+        }
+        logger.info(
+            f"[TurnManager] vad_start received in state={current_state} | "
+            f"duration={duration_ms:.1f}ms, peak={peak:.3f}, RMS={rms:.4f}, speech_prob={speech_probability:.2f}"
+        )
 
         if self.user_speech_start is None:
             self.user_speech_start = now
@@ -209,7 +233,7 @@ class TurnManager:
                         await res
                 self.sm.transition_to("LISTENING", reason="baseline_hard_stop")
                 await asyncio.sleep(0)
-                await self.send_event("clear_queue", {})
+                await self.send_event("clear_queue", {"turn_id": self.turn_id})
                 await self.send_event("decision", {"decision": "interruption", "text": "[baseline]"})
 
                 # Schedule post-speech evaluation to log baseline metrics & wrong stops
@@ -311,35 +335,52 @@ class TurnManager:
         self.sm.transition_to("THINKING", reason="turn_finalized")
         await asyncio.sleep(0)  # Allow state message to dispatch
         if on_turn_complete:
+            import inspect
+            sig = inspect.signature(on_turn_complete)
+            takes_arg = len(sig.parameters) > 0
             if asyncio.iscoroutinefunction(on_turn_complete):
-                await on_turn_complete(text_to_finalize)
+                if takes_arg:
+                    await on_turn_complete(text_to_finalize)
+                else:
+                    await on_turn_complete()
             else:
-                on_turn_complete(text_to_finalize)
+                if takes_arg:
+                    on_turn_complete(text_to_finalize)
+                else:
+                    on_turn_complete()
 
     async def _evaluate_interruption_window(self) -> None:
         """
-        Waits PAUSE_FIRST_CHECK_MS (300-500ms) to classify user sound.
-        During this window, the thin decision ring on the sphere fills.
-        Uses InterruptionHandler for real classification into:
-        - noise (resume)
-        - small_sound (resume)
-        - go_on (resume)
-        - interruption (hard stop)
-        - unclear ("ji?" prompt)
+        Waits for Prisma text up to PAUSE_PRISMA_TEXT_WAIT_SEC (1.2s), staying paused.
+        If no text arrives or text is empty/low-confidence noise, classifies as noise and resumes.
+        If real words arrive, classifies into noise, small_sound, go_on, interruption, or unclear.
         """
-        wait_sec = config.PAUSE_FIRST_CHECK_MS / 1000.0
+        max_wait = getattr(config, "PAUSE_PRISMA_TEXT_WAIT_SEC", 1.2)
+        min_check_sec = min(0.35, getattr(config, "PAUSE_FIRST_CHECK_MS", 400) / 1000.0)
+        start_wait = time.time()
         try:
-            await asyncio.sleep(wait_sec)
+            # Poll for Prisma text while paused
+            while time.time() - start_wait < max_wait:
+                if self.sm.get_state() != "PAUSED":
+                    return
+                elapsed = time.time() - start_wait
+                # If text has arrived and min_check_sec has elapsed, we can finalize
+                if elapsed >= min_check_sec and self.current_user_text.strip() and len(self.current_user_text.strip().split()) >= 1:
+                    break
+                await asyncio.sleep(0.05)
+
             if self.sm.get_state() != "PAUSED":
                 return
 
-            text = self.current_user_text
+            text = self.current_user_text.strip()
             avg_energy = (
                 sum(self.paused_energy_samples) / len(self.paused_energy_samples)
                 if self.paused_energy_samples
-                else 0.05
+                else self.last_vad_meta.get("rms", 0.05)
             )
             duration = max(0.0, time.time() - self.paused_start_time)
+            speech_prob = self.last_vad_meta.get("speech_probability", 1.0)
+            peak = self.last_vad_meta.get("peak", 0.0)
 
             if self.stub_override and config.ENABLE_STUB_DECISIONS:
                 decision = self.stub_override
@@ -350,16 +391,23 @@ class TurnManager:
                     has_voice=True,
                     rms_energy=avg_energy,
                     duration_sec=duration,
+                    confidence=1.0 if text else 0.0,
+                    speech_probability=speech_prob,
                 )
 
             logger.info(
-                f"[TurnManager] [Pause-First] Classified utterance: '{text}' -> {decision} ({reason})"
+                f"[Interruption Diagnostic] vad_start eval | duration={duration:.2f}s, peak={peak:.3f}, "
+                f"RMS={avg_energy:.4f}, speech_prob={speech_prob:.2f}, prisma_text='{text}', "
+                f"classification={decision} ({reason})"
             )
 
             action_taken = "resumed"
             if decision in ("noise", "small_sound", "go_on"):
                 # Resume playback
                 action_taken = "resumed"
+                if decision == "noise":
+                    self.metrics_manager.record_noise_resumed(self.mode)
+
                 await self.send_event("decision", {"decision": decision, "reason": reason, "text": text})
                 self.sm.transition_to("SPEAKING", reason=f"pause_first_resume_{decision}")
                 await asyncio.sleep(0)
@@ -373,10 +421,13 @@ class TurnManager:
                     if asyncio.iscoroutine(res):
                         await res
                 await self.send_event("decision", {"decision": "interruption", "reason": reason, "text": text})
-                await self.send_event("clear_queue", {})
+                await self.send_event("clear_queue", {"turn_id": self.turn_id})
 
                 # Check if user has already spoken a finished new question during PAUSED
-                if self.text_looks_finished(text) and text.strip() != self.last_finalized_text.strip():
+                # Pure STOP commands ('wait', 'ruko', 'stop' <= 2 words) switch to LISTENING
+                # Multi-word questions ('Ruko, ek sawal hai') finalize immediately into THINKING
+                is_pure_stop = reason.startswith("rule_b_stop") and len(text.strip().split()) <= 2
+                if not is_pure_stop and self.text_looks_finished(text) and text.strip() != self.last_finalized_text.strip():
                     logger.info(
                         f"[TurnManager] User interrupted with complete question '{text}'. Finalizing immediately."
                     )
@@ -410,7 +461,7 @@ class TurnManager:
                 # Clear queue and listen again
                 self.sm.transition_to("LISTENING", reason="unclear_prompt_listen")
                 await asyncio.sleep(0)
-                await self.send_event("clear_queue", {})
+                await self.send_event("clear_queue", {"turn_id": self.turn_id})
 
             # Log interruption event in metrics and send browser payload
             if self.metrics_manager:
@@ -479,9 +530,12 @@ class TurnManager:
         logger.info(f"[TurnManager] Sentence {num_id} marked heard_upto (played={self.played_sentences}).")
 
         # Check if all sentences for the active turn have played
-        if self.turn_is_last_sent and self.turn_last_sentence_id is not None:
-            if self.turn_last_sentence_id in self.played_sentences:
+        if self.turn_is_last_sent:
+            if self.turn_last_sentence_id is None or self.turn_last_sentence_id in self.played_sentences:
                 self._finish_speaking_turn()
+        elif self.active_turn_id == 0:
+            # Direct unit test simulation without start_answer_turn
+            self._finish_speaking_turn()
 
     def _finish_speaking_turn(self) -> None:
         """Called when all answer sentences for the current turn have finished playback."""

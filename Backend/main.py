@@ -20,6 +20,8 @@ logger = logging.getLogger("sunai.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Validate startup configuration (credentials, knowledge base docs)
+    config.validate_config()
     # Startup: ensure pre-recorded phrases are generated and cached
     logger.info("Initializing Sunai audio cache...")
     ensure_audio_cache()

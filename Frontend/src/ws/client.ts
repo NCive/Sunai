@@ -67,6 +67,7 @@ export type TtsAudioCallback = (
 ) => void;
 export type PromptAudioCallback = (phrase: string, text: string, audio: ArrayBuffer) => void;
 export type DecisionCallback = (decision: DecisionType) => void;
+export type ClearQueueCallback = (turnId?: number) => void;
 export type SourcesCallback = (sources: string[], refused: boolean) => void;
 export type MetricsCallback = (metrics: MetricsPayload) => void;
 export type ConnectionCallback = (connected: boolean) => void;
@@ -101,7 +102,7 @@ export class SunaiWebSocketClient {
   public onTtsAudio: TtsAudioCallback | null = null;
   public onDecision: DecisionCallback | null = null;
   public onResume: VoidCallback | null = null;
-  public onClearQueue: VoidCallback | null = null;
+  public onClearQueue: ClearQueueCallback | null = null;
   public onUnclearPrompt: PromptAudioCallback | null = null;
   public onIdlePrompt: PromptAudioCallback | null = null;
   public onSources: SourcesCallback | null = null;
@@ -191,7 +192,7 @@ export class SunaiWebSocketClient {
 
       case 'clear_queue':
         if (this.onClearQueue) {
-          this.onClearQueue();
+          this.onClearQueue(msg.turn_id);
         }
         break;
 
@@ -232,8 +233,22 @@ export class SunaiWebSocketClient {
     }
   }
 
-  public sendVadStart(): void {
-    this.sendJson({ type: 'vad_start' });
+  public sendVadStart(meta?: { durationMs?: number; peak?: number; rms?: number; speechProbability?: number }): void {
+    this.sendJson({
+      type: 'vad_start',
+      duration_ms: meta?.durationMs,
+      peak: meta?.peak,
+      rms: meta?.rms,
+      speech_probability: meta?.speechProbability,
+    });
+  }
+
+  public sendBlipIgnored(): void {
+    this.sendJson({ type: 'blip_ignored' });
+  }
+
+  public sendLanguageOverride(language: string): void {
+    this.sendJson({ type: 'set_language', language });
   }
 
   public sendVadEnd(): void {
@@ -260,7 +275,11 @@ export class SunaiWebSocketClient {
     this.sendJson({ type: 'set_stub_decision', decision });
   }
 
-  private sendJson(payload: Record<string, unknown>): void {
+  public sendClearAck(turnId?: number): void {
+    this.sendJson({ type: 'clear_ack', turn_id: turnId });
+  }
+
+  public sendJson(payload: Record<string, unknown>): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(payload));
     }

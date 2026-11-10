@@ -1,44 +1,132 @@
 """
-Interruption Classifier for Sunai Voice Assistant.
-Classifies user speech heard during PAUSED state into 5 distinct categories:
-- noise: acoustic energy low, non-speech click/tap, or no real words.
-- small_sound: backchannels ("haan", "hmm", "ok", "accha", "ji", "theek hai", etc.).
-- go_on: continuation commands ("go on", "continue", "aage bolo", "pudhe sanga", etc.).
-- interruption: real interruption (question starter, stop word, or >= 3 words).
-- unclear: human voice detected but text is empty or weak.
+Deterministic Keyword-Based Interruption Classifier for Sunai Voice Assistant.
+Implements deterministic rules (Rules A through F) with zero LLM or embedding calls.
+Classifies user speech heard during the PAUSED check window into:
+- noise (resume)
+- interruption (hard stop / new question)
+- go_on (resume / play saved rest)
+- small_sound (backchannel -> resume)
+- unclear ("ji?" prompt)
 """
 
 import logging
 import re
 import string
-from typing import Optional, Tuple
+from difflib import SequenceMatcher
+from typing import Optional, Tuple, List, Set, Dict
+
 from Backend import config
+from Backend.interruption_words import (
+    NON_LEXICAL_SOUNDS,
+    BACKCHANNEL_WORDS,
+    GO_ON_PHRASES,
+    STOP_WORDS,
+    QUESTION_WORDS,
+    EXPLICIT_VARIANTS,
+)
 
 logger = logging.getLogger(__name__)
 
-# Punctuation set including English and Indic punctuation (purna viram U+0964, double purna viram U+0965)
+# Punctuation set including English and Indic punctuation (danda U+0964, double danda U+0965)
 INDIC_PUNCTUATION = "।॥"
 ALL_PUNCTUATION = string.punctuation + INDIC_PUNCTUATION + "’‘“”–—…"
 PUNCT_REGEX = re.compile(f"[{re.escape(ALL_PUNCTUATION)}]")
 
 
-def normalize_text(text: str) -> str:
+def normalize_interruption_text(text: str) -> str:
     """
-    Normalizes input text:
-    - Strips leading and trailing whitespace.
-    - Converts Roman characters to lowercase.
-    - Removes punctuation (ASCII & Indic).
-    - Collapses multiple whitespace into single space.
+    Normalizes text for deterministic classification:
+    - Lowercase Roman characters.
+    - Strips punctuation and Devanagari dandas.
+    - Collapses repeated characters (e.g. 'hmmmm' -> 'hmm', 'waitt' -> 'wait').
+    - Maps known typos/variants from EXPLICIT_VARIANTS.
     """
     if not text:
         return ""
-    # Lowercase Roman characters
+
     cleaned = text.lower()
-    # Remove punctuation
+    # Strip punctuation and dandas
     cleaned = PUNCT_REGEX.sub(" ", cleaned)
+
+    # Collapse repeated letters (3 or more of same char -> 2 or 1)
+    # Special cases: 'hmm+' -> 'hmm'
+    cleaned = re.sub(r"h+m{2,}", "hmm", cleaned)
+    cleaned = re.sub(r"([a-z])\1{2,}", r"\1\1", cleaned)
+
     # Collapse whitespace
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    return cleaned
+    tokens = [t.strip() for t in cleaned.split() if t.strip()]
+
+    # Map explicit variants
+    mapped_tokens: List[str] = []
+    for t in tokens:
+        if t in EXPLICIT_VARIANTS:
+            mapped_tokens.extend(EXPLICIT_VARIANTS[t].split())
+        else:
+            mapped_tokens.append(t)
+
+    return " ".join(mapped_tokens)
+
+
+normalize_text = normalize_interruption_text
+
+
+def token_fuzzy_matches(token: str, target: str, min_ratio: float = 0.85) -> bool:
+    """
+    Checks if a token fuzzy matches target keyword:
+    - ONLY applies to tokens with 4 or more letters.
+    - Short tokens (3 letters or fewer) MUST match exactly.
+    """
+    if len(token) < 4 or len(target) < 4:
+        return token == target
+    ratio = SequenceMatcher(None, token, target).ratio()
+    return ratio >= min_ratio
+
+
+def match_keyword_set(tokens: List[str], keyword_set: Set[str], min_ratio: float = 0.85) -> Optional[str]:
+    """Checks if any token or multi-word phrase in tokens matches keyword_set."""
+    joined = " ".join(tokens)
+
+    # 1. Multi-word phrase check first
+    for kw in keyword_set:
+        if " " in kw and kw in joined:
+            return kw
+
+    # 2. Token-level check (exact then fuzzy for len >= 4)
+    for token in tokens:
+        if token in keyword_set:
+            return token
+        for kw in keyword_set:
+            if " " not in kw and token_fuzzy_matches(token, kw, min_ratio=min_ratio):
+                return kw
+
+    return None
+
+
+def match_phrase_list(norm_text: str, tokens: List[str], phrase_list: List[str]) -> Optional[str]:
+    """Checks if normalized text matches any phrase in phrase_list."""
+    # Check exact phrase or prefix/substring match
+    for phrase in phrase_list:
+        if phrase == norm_text or phrase in norm_text:
+            return phrase
+
+    # Check token-level match if phrase is single word
+    for token in tokens:
+        for phrase in phrase_list:
+            if " " not in phrase and token_fuzzy_matches(token, phrase, min_ratio=0.85):
+                return phrase
+
+    return None
+
+
+def is_backchannel_token(token: str) -> bool:
+    """Checks if a single token is recognized as a backchannel word."""
+    if token in BACKCHANNEL_WORDS:
+        return True
+    # Devanagari and Roman check
+    for kw in BACKCHANNEL_WORDS:
+        if " " not in kw and token_fuzzy_matches(token, kw, min_ratio=0.85):
+            return True
+    return False
 
 
 def classify_utterance(
@@ -46,88 +134,143 @@ def classify_utterance(
     has_voice: bool = True,
     rms_energy: float = 0.05,
     duration_sec: float = 0.5,
+    confidence: float = 1.0,
+    speech_probability: float = 1.0,
 ) -> Tuple[str, str]:
     """
-    Classifies utterance heard during PAUSED check window into one of:
-    - 'noise'
-    - 'small_sound'
-    - 'go_on'
-    - 'interruption'
-    - 'unclear'
+    Deterministic rule-based interruption classification.
+    Decision order:
+    Rule a. No text, or only non-lexical sounds, or low confidence with <= 2 words -> noise -> resume.
+    Rule b. Contains any STOP word or QUESTION word, or ends in '?' -> interruption -> hard stop.
+    Rule c. Matches GO_ON phrase -> go_on -> resume / play saved rest.
+    Rule d. Every token belongs to BACKCHANNEL (<= 4 tokens, repeats allowed) -> small_sound -> resume.
+    Rule e. 3 or more words, or any content word outside lists -> interruption -> hard stop / new question.
+    Rule f. Otherwise -> unclear -> 'ji?' prompt.
 
-    :param text: Raw text from STT (Prisma or mock)
-    :param has_voice: True if browser VAD triggered voice onset
-    :param rms_energy: RMS audio energy of the captured audio chunk
-    :param duration_sec: Duration of captured audio in seconds
-    :return: (decision, reason)
+    :return: (decision, reason_str)
     """
-    norm = normalize_text(text)
-    words = norm.split() if norm else []
-    word_count = len(words)
+    raw_text = text.strip() if text else ""
+    ends_with_qmark = raw_text.endswith("?")
 
-    # 1. NOISE CHECK
-    # If no voice detected, or energy below noise threshold, or empty text with very short duration
-    if not has_voice or (rms_energy > 0 and rms_energy < config.NOISE_RMS_ENERGY_THRESHOLD):
-        return "noise", "energy_below_threshold"
+    norm = normalize_interruption_text(raw_text)
+    tokens = norm.split() if norm else []
+    word_count = len(tokens)
+
+    # -------------------------------------------------------------
+    # RULE A: NOISE (No text, non-lexical, or low confidence with <= 2 words)
+    # -------------------------------------------------------------
+    if not has_voice:
+        logger.info(f"[Interruption] Rule A fired: no voice detected -> noise")
+        return "noise", "rule_a_no_voice"
 
     if word_count == 0:
-        if duration_sec > 0 and duration_sec < config.NOISE_MAX_DURATION_SEC:
-            return "noise", "sub_minimum_duration_empty_text"
-        if not has_voice:
-            return "noise", "no_voice_detected"
-        # Voice was detected above energy threshold, but STT produced no words -> UNCLEAR
-        return "unclear", "voice_detected_without_text"
+        logger.info(f"[Interruption] Rule A fired: empty text (duration={duration_sec:.2f}s) -> noise")
+        return "noise", "rule_a_empty_text"
 
-    # Check for exact matches first
-    # 2. GO-ON COMMANDS
-    if norm in config.GO_ON_WORDS:
-        return "go_on", f"matched_go_on_phrase: '{norm}'"
+    # Check if utterance contains ONLY non-lexical acoustic filler sounds
+    if all(t in NON_LEXICAL_SOUNDS for t in tokens) and norm not in BACKCHANNEL_WORDS:
+        logger.info(f"[Interruption] Rule A fired: non-lexical sound '{norm}' -> noise")
+        return "noise", f"rule_a_non_lexical:{norm}"
 
-    for go_on_phrase in config.GO_ON_WORDS:
-        if norm.startswith(go_on_phrase) or go_on_phrase in norm:
-            # If it's a short command (less than interruption word threshold)
-            if word_count <= config.INTERRUPTION_WORD_COUNT_THRESHOLD:
-                return "go_on", f"contains_go_on_phrase: '{go_on_phrase}'"
+    # Low confidence threshold with 2 words or fewer (noise / acoustic artifact)
+    min_confidence = getattr(config, "STT_MIN_CONFIDENCE_THRESHOLD", 0.50)
+    if confidence < min_confidence and word_count <= 2:
+        logger.info(f"[Interruption] Rule A fired: low confidence ({confidence:.2f} < {min_confidence}) with <= 2 words -> noise")
+        return "noise", f"rule_a_low_confidence:{confidence:.2f}"
 
-    # 3. SMALL SOUNDS / BACKCHANNELS
-    if norm in config.SMALL_SOUND_WORDS:
-        return "small_sound", f"matched_backchannel: '{norm}'"
+    # -------------------------------------------------------------
+    # RULE B: STOP WORDS or '?' (Immediate Interruption)
+    # -------------------------------------------------------------
+    matched_stop = match_keyword_set(tokens, STOP_WORDS, min_ratio=0.85)
+    if matched_stop:
+        logger.info(f"[Interruption] Rule B fired: matched STOP keyword '{matched_stop}' in '{norm}' -> interruption")
+        return "interruption", f"rule_b_stop:{matched_stop}"
 
-    # Multi-token backchannel check (e.g. "haan ji", "theek hai")
-    if word_count <= 2 and all(w in config.SMALL_SOUND_WORDS for w in words):
-        return "small_sound", f"all_tokens_backchannel: '{norm}'"
+    if ends_with_qmark:
+        logger.info(f"[Interruption] Rule B fired: question mark detected in '{raw_text}' -> interruption")
+        return "interruption", "rule_b_question_mark"
 
-    # 4. REAL INTERRUPTION
-    # A. Check Stop Words (ruko, stop, wait, thamba, etc.)
-    for w in words:
-        if w in config.STOP_WORDS:
-            return "interruption", f"matched_stop_word: '{w}'"
+    # -------------------------------------------------------------
+    # RULE C: GO_ON (Continuation command -> resume / play saved rest)
+    # -------------------------------------------------------------
+    # Evaluated before general QUESTION words so phrases like 'tell me more' or 'aur batao' continue
+    matched_go_on = match_phrase_list(norm, tokens, GO_ON_PHRASES)
+    if matched_go_on:
+        logger.info(f"[Interruption] Rule C fired: matched GO_ON phrase '{matched_go_on}' in '{norm}' -> go_on")
+        return "go_on", f"rule_c_go_on:{matched_go_on}"
 
-    # B. Check Question Starters (kya, what, why, kay, etc.)
-    if words and words[0] in config.QUESTION_STARTERS:
-        return "interruption", f"starts_with_question_word: '{words[0]}'"
-    if len(words) >= 2 and words[1] in config.QUESTION_STARTERS:
-        return "interruption", f"question_word_in_prefix: '{words[1]}'"
+    # -------------------------------------------------------------
+    # RULE B (cont): QUESTION WORDS (Interruption -> hard stop)
+    # -------------------------------------------------------------
+    matched_question = match_keyword_set(tokens, QUESTION_WORDS, min_ratio=0.85)
+    if matched_question:
+        logger.info(f"[Interruption] Rule B fired: matched QUESTION keyword '{matched_question}' in '{norm}' -> interruption")
+        return "interruption", f"rule_b_question:{matched_question}"
 
-    # C. Word count threshold (3 or more words constitute a question / instruction)
-    if word_count >= config.INTERRUPTION_WORD_COUNT_THRESHOLD:
-        return "interruption", f"word_count_exceeded: {word_count} words"
+    # -------------------------------------------------------------
+    # RULE D: SMALL_SOUND (Every token belongs to BACKCHANNEL, <= 4 tokens)
+    # -------------------------------------------------------------
+    if word_count <= 4:
+        # Check exact multi-word backchannel (e.g. 'theek hai', 'samajh gaya', 'theek aahe')
+        if norm in BACKCHANNEL_WORDS:
+            logger.info(f"[Interruption] Rule D fired: exact multi-word backchannel '{norm}' -> small_sound")
+            return "small_sound", f"rule_d_backchannel_phrase:{norm}"
 
-    # 5. WEAK / UNCLEAR TEXT
-    # If 1-2 words that are neither backchannels nor stop words nor go-on (e.g. single garbled syllable)
-    # E.g. "ah", "brr", or unrecognized whisper
-    if word_count == 1 and len(norm) <= 2 and norm not in config.SMALL_SOUND_WORDS:
-        return "unclear", f"weak_unrecognized_syllable: '{norm}'"
+        # Collapse multi-word backchannels into single compound tokens (e.g. 'got it' -> 'got_it')
+        norm_for_bc = norm
+        for mw in sorted(BACKCHANNEL_WORDS, key=len, reverse=True):
+            if " " in mw and mw in norm_for_bc:
+                norm_for_bc = norm_for_bc.replace(mw, mw.replace(" ", "_"))
+        bc_tokens = norm_for_bc.split()
 
-    # Default fallback: If user spoke 1-2 real unrecognized words that aren't backchannels,
-    # treat as interruption to be safe and avoid talking over them.
-    return "interruption", f"unrecognized_spoken_words: '{norm}'"
+        if len(bc_tokens) <= 4:
+            all_backchannel = True
+            for t in bc_tokens:
+                clean_t = t.replace("_", " ")
+                if not (clean_t in BACKCHANNEL_WORDS or is_backchannel_token(clean_t)):
+                    all_backchannel = False
+                    break
+
+            if all_backchannel:
+                logger.info(f"[Interruption] Rule D fired: all tokens are backchannels '{norm}' -> small_sound")
+                return "small_sound", f"rule_d_all_backchannels:{norm}"
+
+    # -------------------------------------------------------------
+    # RULE E: INTERRUPTION (3 or more words, or content word outside lists)
+    # -------------------------------------------------------------
+    if word_count >= 3:
+        logger.info(f"[Interruption] Rule E fired: {word_count} words in '{norm}' -> interruption")
+        return "interruption", f"rule_e_length:{word_count}_words"
+
+    # If 1-2 words and contains any word not in BACKCHANNEL, NON_LEXICAL, GO_ON, STOP, QUESTION
+    # e.g., 'price', 'laptop', 'weather', 'batao'
+    # Unclear markers (e.g. 'zz', 'unclear', 'inaudible') fall through to Rule F
+    unclear_markers = {"zz", "zzz", "unclear", "inaudible", "garbled", "mumble"}
+    has_unknown_content_word = False
+    for t in tokens:
+        if not is_backchannel_token(t) and t not in NON_LEXICAL_SOUNDS and t not in unclear_markers:
+            has_unknown_content_word = True
+            break
+
+    if has_unknown_content_word:
+        logger.info(f"[Interruption] Rule E fired: content word outside lists in '{norm}' -> interruption")
+        return "interruption", f"rule_e_content_word:{norm}"
+
+    # -------------------------------------------------------------
+    # RULE F: UNCLEAR (High probability voice with unusable/unclear text)
+    # -------------------------------------------------------------
+    min_speech_prob = getattr(config, "VAD_SPEECH_PROB_UNCLEAR_THRESHOLD", 0.70)
+    if speech_probability >= min_speech_prob:
+        logger.info(f"[Interruption] Rule F fired: high-probability voice ({speech_probability:.2f}) unclear text '{norm}' -> unclear")
+        return "unclear", f"rule_f_unclear:{norm}"
+
+    # If speech probability is low, classify as noise
+    logger.info(f"[Interruption] Rule F fallback: low speech probability ({speech_probability:.2f}) -> noise")
+    return "noise", "rule_f_low_speech_prob_noise"
 
 
 class InterruptionHandler:
-    """
-    Stateful handler for interruptions and retry escalation on unclear input.
-    """
+    """Wrapper class used by TurnManager to evaluate audio/text during PAUSED window."""
 
     def __init__(self):
         self.unclear_failures_count: int = 0
@@ -142,26 +285,24 @@ class InterruptionHandler:
         has_voice: bool = True,
         rms_energy: float = 0.05,
         duration_sec: float = 0.5,
+        confidence: float = 1.0,
+        speech_probability: float = 1.0,
     ) -> Tuple[str, str]:
-        """
-        Classifies utterance and manages failure counter.
-        """
         decision, reason = classify_utterance(
             text=text,
             has_voice=has_voice,
             rms_energy=rms_energy,
             duration_sec=duration_sec,
+            confidence=confidence,
+            speech_probability=speech_probability,
         )
-
         if decision == "unclear":
             self.unclear_failures_count += 1
             logger.info(
                 f"[InterruptionHandler] Unclear utterance detected (failure #{self.unclear_failures_count})."
             )
         else:
-            # Non-unclear classification resets retry counter
             self.unclear_failures_count = 0
-
         return decision, reason
 
     def get_unclear_response(self, language: str = "hi-IN") -> dict:
@@ -172,8 +313,8 @@ class InterruptionHandler:
         """
         lang = language if language in ("hi-IN", "mr-IN", "en-IN") else "hi-IN"
 
-        if self.unclear_failures_count <= config.UNCLEAR_MAX_RETRIES:
-            phrase_key = "ji" if self.unclear_failures_count == 1 else "kya_kaha"
+        if self.unclear_failures_count <= getattr(config, "UNCLEAR_MAX_RETRIES", 2):
+            phrase_key = "ji" if self.unclear_failures_count <= 1 else "kya_kaha"
             text = config.CACHE_PHRASES.get(phrase_key, {}).get(lang, "जी?")
             return {
                 "phrase_key": phrase_key,
@@ -184,7 +325,7 @@ class InterruptionHandler:
             # Exceeded retries: play ask-to-repeat-slowly line and reset
             phrase_key = "repeat_slowly"
             text = config.CACHE_PHRASES.get("repeat_slowly", {}).get(
-                lang, config.UNCLEAR_REPEAT_SLOWLY.get(lang, "कृपया धीरे-धीरे और साफ़ बोलें।")
+                lang, getattr(config, "UNCLEAR_REPEAT_SLOWLY", {}).get(lang, "कृपया धीरे-धीरे और साफ़ बोलें।")
             )
             self.reset_failures()
             return {
@@ -192,4 +333,3 @@ class InterruptionHandler:
                 "text": text,
                 "escalated": True,
             }
-

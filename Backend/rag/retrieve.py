@@ -5,7 +5,7 @@ evaluates the raw-score Refusal Gate, and provides the top retrieved source chun
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 import numpy as np
 
@@ -26,6 +26,8 @@ class RetrievalResult:
     top_rrf_score: float
     sources: List[str]
     context_text: str
+    titles: List[str] = field(default_factory=list)
+    source_details: List[dict] = field(default_factory=list)
 
 
 class HybridRetriever:
@@ -122,9 +124,20 @@ class HybridRetriever:
 
         # Extract unique sources preserving rank order
         sources: List[str] = []
+        titles: List[str] = []
+        source_details: List[dict] = []
+        seen_docs = set()
         for c in top_chunks:
-            if c.doc_name not in sources:
+            if c.doc_name not in seen_docs:
+                seen_docs.add(c.doc_name)
                 sources.append(c.doc_name)
+                if c.title and c.title not in titles:
+                    titles.append(c.title)
+                source_details.append({
+                    "doc_name": c.doc_name,
+                    "title": c.title or c.doc_name,
+                    "source_urls": c.source_urls or [],
+                })
 
         # Compile concatenated context text for LLM
         context_text = "\n\n".join(
@@ -139,5 +152,7 @@ class HybridRetriever:
             top_rrf_score=max_rrf_score,
             sources=sources,
             context_text=context_text,
+            titles=titles,
+            source_details=source_details,
         )
 

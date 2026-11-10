@@ -37,16 +37,35 @@ export interface AudioCaptureConfig {
   echoCancellation: boolean;
   noiseSuppression: boolean;
   autoGainControl: boolean;
+  highPassFilterHz: number;
+  noiseGatingEnabled: boolean;
+  noiseGatePreRollMs: number;
+  noiseGateHangoverMs: number;
   analyserFftSize: number;
   analyserSmoothing: number;
 }
 
 export interface VadConfig {
+  useNeuralVad: boolean;
+  vadModelPath: string;
+  vadWasmPath: string;
+  vadWorkletPath: string;
   energyThreshold: number;
   energyThresholdSpeaking: number;
+  speakingSpeechProbThreshold: number;
+  listeningSpeechProbThreshold: number;
+  speakingMinDurationMs: number;
+  listeningMinDurationMs: number;
+  duckVolume: number;
+  duckRampMs: number;
+  minSpikeDurationMs: number;
+  speechBandLowHz: number;
+  speechBandHighHz: number;
+  adaptiveNoiseAlpha: number;
   speechHoldMs: number;
   minSpeechDurationMs: number;
   checkIntervalMs: number;
+  calibratedNoiseFloor: number;
 }
 
 export interface PlayQueueConfig {
@@ -119,16 +138,35 @@ export const CONFIG: FrontendConfig = {
     chunkDurationMs: 100,
     echoCancellation: true,
     noiseSuppression: true,
-    autoGainControl: true,
+    autoGainControl: false, // Default off to prevent boosting background noise
+    highPassFilterHz: 100,
+    noiseGatingEnabled: true,
+    noiseGatePreRollMs: 300,
+    noiseGateHangoverMs: 400,
     analyserFftSize: 256,
     analyserSmoothing: 0.8,
   },
   vad: {
+    useNeuralVad: true,
+    vadModelPath: '/vad/silero_vad_v5.onnx',
+    vadWasmPath: '/vad/',
+    vadWorkletPath: '/vad/vad.worklet.bundle.min.js',
     energyThreshold: 0.018,
-    energyThresholdSpeaking: 0.028,
+    energyThresholdSpeaking: 0.035,
+    speakingSpeechProbThreshold: 0.65,
+    listeningSpeechProbThreshold: 0.45,
+    speakingMinDurationMs: 200,
+    listeningMinDurationMs: 80,
+    duckVolume: 0.25,
+    duckRampMs: 40,
+    minSpikeDurationMs: 120,
+    speechBandLowHz: 300,
+    speechBandHighHz: 3400,
+    adaptiveNoiseAlpha: 0.05,
     speechHoldMs: 350,
     minSpeechDurationMs: 80,
     checkIntervalMs: 20,
+    calibratedNoiseFloor: 0.005,
   },
   playQueue: {
     fadeOutTimeSec: 0.015,

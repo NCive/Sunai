@@ -7,24 +7,50 @@
 .env.*
 *.env
 !.env.example
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+secrets/
 
-# Large model weights & HuggingFace hub caches
-/Models/
+# Audio and audio cache
+Backend/audio_cache/**
+!Backend/audio_cache/.gitkeep
+/audio_cache/
+tests/samples/
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.m4a
+*.webm
+
+# Large model weights, checkpoints & HuggingFace caches
 Models/
+/Models/
 hub/
 snapshots/
+hf_cache/
 *.gguf
 *.safetensors
 *.bin
 *.onnx
+*.wasm
+Frontend/public/vad/
 *.pt
 *.pth
+*.ckpt
 
-# Runtime logs & metrics data (Plan Section 13 & 16)
-logs/
-Backend/logs/
+# Runtime logs, indices & metrics data
+/logs/
+Backend/logs/**
+!Backend/logs/.gitkeep
 *.log
 *.jsonl
+*.bm25
+*.index
+*.vec
 
 # Python virtual environments, packaging & bytecode
 __pycache__/
@@ -54,6 +80,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.mypy_cache/
 
 # Testing & Pytest artifacts
 .pytest_cache/

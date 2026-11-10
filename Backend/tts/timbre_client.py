@@ -68,7 +68,7 @@ class TimbreTTSClient:
     def __init__(self):
         self.api_key = config.GNANI_API_KEY
         self.client: Optional[GnaniTTSClient] = None
-        if self.api_key:
+        if not config.SUNAI_MOCK_GNANI and self.api_key:
             try:
                 self.client = GnaniTTSClient(api_key=self.api_key)
                 logger.info("[TimbreTTS] Initialized Gnani TTS Client.")
