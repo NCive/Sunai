@@ -73,6 +73,10 @@ export const App: React.FC = () => {
     interruptionModeRef.current = interruptionMode;
   }, [interruptionMode]);
 
+  useEffect(() => {
+    vadRef.current?.setAssistantSpeaking(sphereState === 'SPEAKING');
+  }, [sphereState]);
+
   // Initialize PlayQueue & WebSocket
   useEffect(() => {
     const pq = new PlayQueue();
@@ -83,11 +87,11 @@ export const App: React.FC = () => {
     wsClientRef.current = ws;
 
     // Sentence finished callback: notify server and update local state
-    pq.setOnSentenceFinished((id) => {
-      console.log(`[App] Sentence finished: ${id}`);
-      ws.sendSentencePlayed(id);
+    pq.setOnSentenceFinished((id, turnId, kind) => {
+      console.log(`[App] Sentence finished: ${id} (turn=${turnId}, kind=${kind})`);
+      ws.sendSentencePlayed(id, turnId, kind);
       const numId = Number(id);
-      if (!isNaN(numId)) {
+      if (!isNaN(numId) && kind !== 'filler' && numId > 0) {
         setHeardUpto((prev) => Math.max(prev, numId));
       }
       setActiveSentenceId(pq.getActiveSentenceId());
@@ -105,7 +109,7 @@ export const App: React.FC = () => {
       setIsWsConnected(connected);
       if (connected) {
         ws.setMode(interruptionModeRef.current);
-        ws.setStubDecision(stubDecision);
+        // Do NOT send stub override on normal connect (Bug 2 fix)
       }
     };
 
@@ -127,15 +131,19 @@ export const App: React.FC = () => {
       if (lang) setDetectedLanguage(lang);
     };
 
-    ws.onTtsAudio = (sentenceId, audioBuffer, replyText) => {
-      console.log(`[App] Received TTS audio for sentence ${sentenceId}: ${replyText}`);
-      if (replyText && typeof sentenceId === 'number' && sentenceId > 0) {
+    ws.onTtsAudio = (sentenceId, audioBuffer, replyText, turnId, kind) => {
+      console.log(`[App] Received TTS audio for sentence ${sentenceId} (turn=${turnId}, kind=${kind}): ${replyText}`);
+      // If real sentence arrives and filler is playing, immediately abort filler (Bug 3 fix)
+      if (kind !== 'filler' && sentenceId !== 0) {
+        pq.stopCurrentIfFiller();
+      }
+      if (replyText && typeof sentenceId === 'number' && sentenceId > 0 && kind !== 'filler') {
         setBotSentences((prev) => {
           if (prev.some((s) => s.id === sentenceId)) return prev;
           return [...prev, { id: sentenceId, text: replyText }];
         });
       }
-      pq.enqueue({ sentenceId, audioData: audioBuffer });
+      pq.enqueue({ sentenceId, audioData: audioBuffer, turnId, kind: kind || 'sentence' });
       setQueueLength(pq.getQueueLength());
       setIsPlayingAudio(true);
     };

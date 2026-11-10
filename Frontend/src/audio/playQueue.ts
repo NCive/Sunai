@@ -2,10 +2,12 @@ import { CONFIG } from '../config';
 
 export interface PlayQueueItem {
   sentenceId: number | string;
+  turnId?: number;
+  kind?: 'sentence' | 'filler';
   audioData: ArrayBuffer; // Encoded audio (WAV, MP3) or decodable buffer
 }
 
-export type SentenceFinishedCallback = (sentenceId: number | string) => void;
+export type SentenceFinishedCallback = (sentenceId: number | string, turnId?: number, kind?: string) => void;
 
 /**
  * PlayQueue
@@ -22,6 +24,7 @@ export class PlayQueue {
   private isPaused = false;
   private isPlaying = false;
   private activeSentenceId: number | string | null = null;
+  private activeItem: PlayQueueItem | null = null;
   private onSentenceFinishedCallback: SentenceFinishedCallback | null = null;
 
   constructor() {
@@ -73,6 +76,7 @@ export class PlayQueue {
     this.isPlaying = true;
     const nextItem = this.queue.shift()!;
     this.activeSentenceId = nextItem.sentenceId;
+    this.activeItem = nextItem;
 
     try {
       // Decode audio data (clone buffer since decodeAudioData detaches ArrayBuffer)
@@ -91,11 +95,14 @@ export class PlayQueue {
 
       this.currentSource.onended = () => {
         const finishedId = this.activeSentenceId;
+        const finishedTurnId = this.activeItem?.turnId;
+        const finishedKind = this.activeItem?.kind;
         this.currentSource = null;
         this.activeSentenceId = null;
+        this.activeItem = null;
 
         if (finishedId !== null && this.onSentenceFinishedCallback) {
-          this.onSentenceFinishedCallback(finishedId);
+          this.onSentenceFinishedCallback(finishedId, finishedTurnId, finishedKind);
         }
 
         if (!this.isPaused) {
@@ -109,6 +116,32 @@ export class PlayQueue {
       // Skip bad audio item and try next
       this.playNext();
     }
+  }
+
+  /**
+   * Immediately aborts any playing filler clip ("please wait", etc.) when
+   * a real answer sentence arrives, so the user hears the answer without delay.
+   */
+  public stopCurrentIfFiller(): boolean {
+    if (this.activeItem && (this.activeItem.kind === 'filler' || this.activeItem.sentenceId === 0)) {
+      console.log('[PlayQueue] Stopping active filler clip to prioritize real answer sentence.');
+      if (this.currentSource) {
+        try {
+          this.currentSource.stop();
+          this.currentSource.disconnect();
+        } catch {
+          // Ignore if already stopped
+        }
+        this.currentSource = null;
+      }
+      this.activeItem = null;
+      this.activeSentenceId = null;
+      // Discard any other queued filler items
+      this.queue = this.queue.filter((item) => item.kind !== 'filler' && item.sentenceId !== 0);
+      this.playNext();
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -152,6 +185,7 @@ export class PlayQueue {
     }
     this.isPlaying = false;
     this.activeSentenceId = null;
+    this.activeItem = null;
     this.isPaused = false;
   }
 

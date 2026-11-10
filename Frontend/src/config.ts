@@ -43,6 +43,7 @@ export interface AudioCaptureConfig {
 
 export interface VadConfig {
   energyThreshold: number;
+  energyThresholdSpeaking: number;
   speechHoldMs: number;
   minSpeechDurationMs: number;
   checkIntervalMs: number;
@@ -124,6 +125,7 @@ export const CONFIG: FrontendConfig = {
   },
   vad: {
     energyThreshold: 0.018,
+    energyThresholdSpeaking: 0.028,
     speechHoldMs: 350,
     minSpeechDurationMs: 80,
     checkIntervalMs: 20,

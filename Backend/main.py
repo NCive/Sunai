@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from Backend import config
-from Backend.ws_server import SunaiConnectionManager
+from Backend.ws_server import SunaiConnectionManager, get_global_retriever
 from Backend.audio_cache_manager import ensure_audio_cache
 
 logging.basicConfig(
@@ -23,7 +23,10 @@ async def lifespan(app: FastAPI):
     # Startup: ensure pre-recorded phrases are generated and cached
     logger.info("Initializing Sunai audio cache...")
     ensure_audio_cache()
-    logger.info("Sunai Backend initialized.")
+    # Warm up RAG indexes (BM25 + all-MiniLM-L6-v2) at startup per plan section 9
+    logger.info("Pre-warming RAG indexes (BM25 + MiniLM vectors)...")
+    get_global_retriever()
+    logger.info("Sunai Backend fully initialized and ready.")
     yield
     logger.info("Sunai Backend shutdown.")
 

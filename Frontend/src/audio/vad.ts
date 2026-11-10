@@ -19,6 +19,11 @@ export class BrowserVAD {
   private silenceStartTime: number | null = null;
   private currentEnergy = 0;
   private timeData: Uint8Array | null = null;
+  private isAssistantSpeaking = false;
+
+  public setAssistantSpeaking(speaking: boolean): void {
+    this.isAssistantSpeaking = speaking;
+  }
 
   public start(
     analyser: AnalyserNode,
@@ -51,7 +56,9 @@ export class BrowserVAD {
     this.currentEnergy = rms;
 
     const now = performance.now();
-    const threshold = CONFIG.vad.energyThreshold;
+    const threshold = this.isAssistantSpeaking
+      ? CONFIG.vad.energyThresholdSpeaking
+      : CONFIG.vad.energyThreshold;
 
     if (rms >= threshold) {
       this.silenceStartTime = null;

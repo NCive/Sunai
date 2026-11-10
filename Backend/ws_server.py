@@ -51,8 +51,8 @@ class SunaiConnectionManager:
         self.stt_session: Optional[PrismaSTTSession] = None
         self.retriever = get_global_retriever()
         self.current_language = "hi-IN"
-        self.sentence_counter = 0
         self.current_turn_id = 0
+        self.turn_sentence_counter = 0
         self.last_vad_end_time = time.time()
 
         # LLM streaming task tracking & cancellation
@@ -114,6 +114,8 @@ class SunaiConnectionManager:
                 self.current_language = lang
                 self.turn_manager.current_language = lang
             self.turn_manager.current_user_text = text
+            if is_final:
+                self.turn_manager.has_final_transcript = True
 
             msg = {
                 "type": "final_text" if is_final else "partial_text",
@@ -155,26 +157,36 @@ class SunaiConnectionManager:
             await self.cleanup()
 
     async def handle_json_message(self, data: dict) -> None:
-        """Processes client control messages."""
+        """Processes client control messages with Step 0 Diagnostic logging."""
         msg_type = data.get("type")
 
         if msg_type == "vad_start":
+            logger.info(f"[WS] vad_start received in state={self.sm.get_state()}")
             await self.turn_manager.on_user_voice_start()
 
         elif msg_type == "vad_end":
+            logger.info(f"[WS] vad_end received in state={self.sm.get_state()}")
             self.last_vad_end_time = time.time()
             await self.turn_manager.on_user_voice_end(on_turn_complete=self.on_turn_complete)
 
         elif msg_type == "sentence_played":
             sentence_id = data.get("id")
+            turn_id = data.get("turn_id", self.current_turn_id)
+            kind = data.get("kind", "sentence")
+            logger.info(
+                f"[WS] sentence_played received: id={sentence_id}, turn_id={turn_id}, kind={kind}, state={self.sm.get_state()}"
+            )
             if sentence_id is not None:
-                self.history.record_sentence_played(sentence_id)
-                self.turn_manager.on_sentence_played(sentence_id)
+                if kind != "filler" and sentence_id != 0:
+                    self.history.record_sentence_played(sentence_id)
+                self.turn_manager.on_sentence_played(sentence_id, turn_id=turn_id, kind=kind)
 
         elif msg_type == "playback_finished":
+            logger.info(f"[WS] playback_finished received in state={self.sm.get_state()}")
             self.turn_manager.on_playback_finished()
 
         elif msg_type == "wake":
+            logger.info("[WS] wake message received.")
             await self.turn_manager.on_wake_tap()
 
         elif msg_type == "set_mode":
@@ -188,9 +200,18 @@ class SunaiConnectionManager:
             self.turn_manager.set_stub_decision(dec)
             await self.send_json({"type": "stub_decision_set", "decision": dec})
 
-    async def on_turn_complete(self) -> None:
-        """Executes when user turn is finalized after 700ms silence."""
-        user_text = self.turn_manager.current_user_text
+    async def on_turn_complete(self, finalized_text: Optional[str] = None) -> None:
+        """Executes when user turn is finalized."""
+        user_text = (
+            finalized_text
+            or self.turn_manager.last_finalized_text
+            or self.turn_manager.current_user_text
+        ).strip()
+
+        # Reset STT transcript buffer so old text is not reused
+        if self.stt_session:
+            self.stt_session.reset_transcript()
+
         lang = self.current_language
         t_final_text = time.time()
         logger.info(f"[WS] Finalized user question: '{user_text}' (lang={lang})")
@@ -202,8 +223,9 @@ class SunaiConnectionManager:
         if is_go_on and self.history.has_unplayed_continuation():
             logger.info("[WS] 'Go on' continuation detected! Playing saved unplayed sentences WITHOUT calling LLM.")
             cont_turn = self.history.apply_go_on_continuation(user_text, lang)
-            turn_id = cont_turn.turn_id if cont_turn else self.sentence_counter + 1
+            turn_id = cont_turn.turn_id if cont_turn else self.turn_manager.turn_id
             self.current_turn_id = turn_id
+            self.turn_manager.on_turn_started(turn_id)
 
             self.metrics_manager.start_turn(turn_id, self.turn_manager.mode, user_text, lang)
             self.metrics_manager.record_timestamp(turn_id, "voice_end", self.last_vad_end_time)
@@ -227,15 +249,20 @@ class SunaiConnectionManager:
                     self.sm.transition_to("SPEAKING", reason="go_on_continuation")
                     await asyncio.sleep(0)
 
+                total_recs = len(unplayed_recs)
+                self.turn_manager.set_turn_last_sentence(turn_id, total_recs)
+
                 t_first_audio_recorded = False
-                for rec in unplayed_recs:
-                    sent_id = rec["id"]
+                for idx, rec in enumerate(unplayed_recs, start=1):
+                    sent_id = idx
                     sent_text = rec["translated_text"] or rec["text"]
                     audio_b64 = rec.get("audio_b64")
+                    source = "cache_turn"
                     if not audio_b64:
                         wav_bytes = self.tts_client.synthesize(sent_text, language=lang)
                         audio_b64 = base64.b64encode(wav_bytes).decode("ascii")
                         rec["audio_b64"] = audio_b64
+                        source = "timbre_live"
 
                     if not t_first_audio_recorded:
                         now_ts = time.time()
@@ -245,12 +272,20 @@ class SunaiConnectionManager:
                         t_first_audio_recorded = True
 
                     self.turn_manager.on_sentence_started(sent_id)
+                    is_last = (idx == total_recs)
+                    logger.info(
+                        f"[WS Audio] Sent clip sentence_id={sent_id}, turn_id={turn_id}, source={source}, is_last={is_last}, text='{sent_text[:40]}...'"
+                    )
                     await self.send_json({
                         "type": "tts_audio",
+                        "turn_id": turn_id,
                         "sentence_id": sent_id,
                         "audio": audio_b64,
                         "text": sent_text,
                         "refused": False,
+                        "kind": "sentence",
+                        "is_last": is_last,
+                        "source": source,
                     })
 
                 metric_rec = self.metrics_manager.finalize_turn(turn_id)
@@ -264,6 +299,8 @@ class SunaiConnectionManager:
         turn = self.history.start_new_turn(user_text, lang)
         turn_id = turn.turn_id
         self.current_turn_id = turn_id
+        self.turn_sentence_counter = 0
+        self.turn_manager.on_turn_started(turn_id)
 
         self.metrics_manager.start_turn(turn_id, self.turn_manager.mode, user_text, lang)
         self.metrics_manager.record_timestamp(turn_id, "voice_end", self.last_vad_end_time)
@@ -307,8 +344,8 @@ class SunaiConnectionManager:
             wav_bytes = get_cached_audio("not_in_docs", language=lang)
             b64_audio = base64.b64encode(wav_bytes).decode("ascii")
 
-            self.sentence_counter += 1
-            sentence_id = self.sentence_counter
+            sentence_id = 1
+            self.turn_manager.set_turn_last_sentence(turn_id, sentence_id)
 
             self.sm.transition_to("SPEAKING", reason="refusal_not_in_docs")
             await asyncio.sleep(0)
@@ -319,12 +356,19 @@ class SunaiConnectionManager:
             self.metrics_manager.record_timestamp(turn_id, "first_tts_audio", now_ts)
             self.metrics_manager.record_timestamp(turn_id, "playback_start", now_ts)
 
+            logger.info(
+                f"[WS Audio] Sent clip sentence_id={sentence_id}, turn_id={turn_id}, source=cache_file:not_in_docs, is_last=True"
+            )
             await self.send_json({
                 "type": "tts_audio",
+                "turn_id": turn_id,
                 "sentence_id": sentence_id,
                 "audio": b64_audio,
                 "text": refusal_text,
                 "refused": True,
+                "kind": "sentence",
+                "is_last": True,
+                "source": "cache_file:not_in_docs",
             })
 
             metric_rec = self.metrics_manager.finalize_turn(turn_id)
@@ -348,8 +392,8 @@ class SunaiConnectionManager:
             self._generate_and_stream_response(query_en, retrieval.top_chunks, lang, turn_id)
         )
 
-    async def _please_wait_timer(self, lang: str, first_sent_event: asyncio.Event) -> None:
-        """Plays 'please wait' clip if first sentence takes longer than 1.5s."""
+    async def _please_wait_timer(self, lang: str, first_sent_event: asyncio.Event, turn_id: int) -> None:
+        """Plays 'please wait' filler clip if first sentence takes longer than 1.5s."""
         try:
             await asyncio.sleep(config.FIRST_SENTENCE_WAIT_TIMEOUT_SEC)
             if not first_sent_event.is_set() and not self.llm_cancel_event.is_set():
@@ -364,13 +408,20 @@ class SunaiConnectionManager:
                     self.sm.transition_to("SPEAKING", reason="interim_please_wait")
                     await asyncio.sleep(0)
 
+                logger.info(
+                    f"[WS Audio] Sent filler clip sentence_id=0, turn_id={turn_id}, source=cache_file:please_wait"
+                )
                 await self.send_json({
                     "type": "tts_audio",
+                    "turn_id": turn_id,
                     "sentence_id": 0,
                     "audio": b64_audio,
                     "text": pw_text,
                     "interim": True,
                     "refused": False,
+                    "kind": "filler",
+                    "is_last": False,
+                    "source": "cache_file:please_wait",
                 })
         except asyncio.CancelledError:
             pass
@@ -391,7 +442,7 @@ class SunaiConnectionManager:
         first_tts_recorded = False
 
         first_sent_event = asyncio.Event()
-        pw_task = asyncio.create_task(self._please_wait_timer(lang, first_sent_event))
+        pw_task = asyncio.create_task(self._please_wait_timer(lang, first_sent_event, turn_id))
 
         messages = build_qwen_prompt(
             question=query_en,
@@ -400,6 +451,7 @@ class SunaiConnectionManager:
         )
 
         splitter = StreamingSentenceSplitter(min_char_len=config.MIN_SENTENCE_CHAR_LEN)
+        dispatched_count = 0
 
         try:
             logger.info("[WS] Streaming response from Qwen with thinking OFF...")
@@ -419,24 +471,54 @@ class SunaiConnectionManager:
                         self.metrics_manager.record_timestamp(turn_id, "first_sentence_ready", time.time())
                         first_sent_recorded = True
 
+                    dispatched_count += 1
                     await self._dispatch_sentence(
-                        sentence_en, lang, first_sent_event, pw_task, turn_id, first_tts_recorded
+                        sentence_en,
+                        lang,
+                        first_sent_event,
+                        pw_task,
+                        turn_id,
+                        first_tts_recorded,
+                        sentence_id=dispatched_count,
+                        is_last=False,
                     )
                     first_tts_recorded = True
 
-            # Flush any remaining text in buffer
+            # Flush remaining sentences in buffer
             if not self.llm_cancel_event.is_set():
-                for remaining_en in splitter.flush():
+                remaining = splitter.flush()
+                for remaining_en in remaining:
                     if self.llm_cancel_event.is_set():
                         break
                     if not first_sent_recorded:
                         self.metrics_manager.record_timestamp(turn_id, "first_sentence_ready", time.time())
                         first_sent_recorded = True
 
+                    dispatched_count += 1
                     await self._dispatch_sentence(
-                        remaining_en, lang, first_sent_event, pw_task, turn_id, first_tts_recorded
+                        remaining_en,
+                        lang,
+                        first_sent_event,
+                        pw_task,
+                        turn_id,
+                        first_tts_recorded,
+                        sentence_id=dispatched_count,
+                        is_last=False,
                     )
                     first_tts_recorded = True
+
+                # Notify turn manager that generation is done and identify last sentence
+                logger.info(
+                    f"[WS] Finished LLM generation for turn {turn_id}: total {dispatched_count} sentences."
+                )
+                self.turn_manager.set_turn_last_sentence(turn_id, dispatched_count)
+
+                # Send turn_last_sentence control frame so frontend knows final sentence
+                await self.send_json({
+                    "type": "turn_last_sentence",
+                    "turn_id": turn_id,
+                    "last_sentence_id": dispatched_count,
+                })
 
             self.history.finalize_current_turn()
             metric_rec = self.metrics_manager.finalize_turn(turn_id)
@@ -463,6 +545,8 @@ class SunaiConnectionManager:
         pw_task: asyncio.Task,
         turn_id: int,
         first_tts_recorded: bool,
+        sentence_id: int,
+        is_last: bool = False,
     ) -> None:
         """Translates, synthesizes, and dispatches a single completed sentence."""
         clean_en = sentence_en.strip()
@@ -480,7 +564,7 @@ class SunaiConnectionManager:
         else:
             translated_text = clean_en
 
-        logger.info(f"[WS] Synthesizing sentence: '{translated_text}' (lang={lang})")
+        logger.info(f"[WS] Synthesizing sentence #{sentence_id}: '{translated_text}' (lang={lang})")
 
         # 2. Synthesize via Timbre
         wav_bytes = self.tts_client.synthesize(translated_text, language=lang)
@@ -491,9 +575,6 @@ class SunaiConnectionManager:
             self.metrics_manager.record_timestamp(turn_id, "first_tts_audio", now_ts)
             self.metrics_manager.record_timestamp(turn_id, "playback_start", now_ts)
 
-        self.sentence_counter += 1
-        sentence_id = self.sentence_counter
-
         # 3. Transition to SPEAKING and notify TurnManager & History
         if self.sm.get_state() != "SPEAKING":
             self.sm.transition_to("SPEAKING", reason="tts_ready")
@@ -502,17 +583,26 @@ class SunaiConnectionManager:
         self.turn_manager.on_sentence_started(sentence_id)
         self.history.add_assistant_sentence(translated_text, translated_text=translated_text, audio_b64=b64_audio)
 
+        logger.info(
+            f"[WS Audio] Sent clip sentence_id={sentence_id}, turn_id={turn_id}, source=timbre_live, is_last={is_last}, text='{translated_text[:40]}...'"
+        )
+
         # 4. Dispatch tts_audio payload to client
         await self.send_json({
             "type": "tts_audio",
+            "turn_id": turn_id,
             "sentence_id": sentence_id,
             "audio": b64_audio,
             "text": translated_text,
             "refused": False,
+            "kind": "sentence",
+            "is_last": is_last,
+            "source": "timbre_live",
         })
 
     async def cleanup(self) -> None:
-        """Cleans up active resources."""
+        """Cleans up active resources on client disconnect."""
+        logger.info("[WS] Cleaning up connection resources...")
         self.cancel_llm()
         if self.stt_session:
             await self.stt_session.close()

@@ -208,62 +208,67 @@ print("✓ Test 3 Passed: Pause-First mode eliminated 100% of wrong stops compar
 # Test 4: WebSocket End-to-End Metrics Message & 'Go On' Turn
 # =====================================================================
 print("Test 4: Validating WebSocket 'metrics' Emission and 'Go on' Pipeline...")
-test_client = TestClient(app)
+orig_key = config.GNANI_API_KEY
+config.GNANI_API_KEY = ""  # Run in mock STT mode for reproducible unit test
+try:
+    test_client = TestClient(app)
 
-with test_client.websocket_connect("/ws") as ws:
-    # 1. State Handshake
-    msg = ws.receive_json()
-    assert msg["type"] == "state" and msg["state"] == "IDLE"
+    with test_client.websocket_connect("/ws") as ws:
+        # 1. State Handshake
+        msg = ws.receive_json()
+        assert msg["type"] == "state" and msg["state"] == "IDLE"
 
-    # Set mode to pause_first
-    ws.send_json({"type": "set_mode", "mode": "pause_first"})
-    mode_ack = ws.receive_json()
-    assert mode_ack["type"] == "mode_set"
-    metrics_ack = ws.receive_json()
-    assert metrics_ack["type"] == "metrics"
-    assert "comparison" in metrics_ack
-    assert "pause_first" in metrics_ack["comparison"]
+        # Set mode to pause_first
+        ws.send_json({"type": "set_mode", "mode": "pause_first"})
+        mode_ack = ws.receive_json()
+        assert mode_ack["type"] == "mode_set"
+        metrics_ack = ws.receive_json()
+        assert metrics_ack["type"] == "metrics"
+        assert "comparison" in metrics_ack
+        assert "pause_first" in metrics_ack["comparison"]
 
-    # 2. Complete a turn
-    ws.send_json({"type": "vad_start"})
-    assert ws.receive_json()["state"] == "LISTENING"
+        # 2. Complete a turn
+        ws.send_json({"type": "vad_start"})
+        assert ws.receive_json()["state"] == "LISTENING"
 
-    # Send audio chunks
-    for _ in range(16):
-        ws.send_bytes(b"\x00\x00" * 800)
-    ws.receive_json()  # partial caption
+        # Send audio chunks
+        for _ in range(16):
+            ws.send_bytes(b"\x00\x00" * 800)
+        ws.receive_json()  # partial caption
 
-    ws.send_json({"type": "vad_end"})
-    assert ws.receive_json()["state"] == "THINKING"
-    assert ws.receive_json()["type"] == "final_text"
-    assert ws.receive_json()["type"] == "sources"
-    assert ws.receive_json()["state"] == "SPEAKING"
+        ws.send_json({"type": "vad_end"})
+        assert ws.receive_json()["state"] == "THINKING"
+        assert ws.receive_json()["type"] == "final_text"
+        assert ws.receive_json()["type"] == "sources"
+        assert ws.receive_json()["state"] == "SPEAKING"
 
-    # First audio arrives
-    first_tts = ws.receive_json()
-    assert first_tts["type"] == "tts_audio"
+        # First audio arrives
+        first_tts = ws.receive_json()
+        assert first_tts["type"] == "tts_audio"
 
-    # If interim 'please wait' arrived, consume next real sentence
-    if first_tts.get("interim"):
-        s1 = ws.receive_json()
-        assert s1["type"] == "tts_audio"
-        ws.send_json({"type": "sentence_played", "id": s1["sentence_id"]})
-    else:
-        ws.send_json({"type": "sentence_played", "id": first_tts["sentence_id"]})
+        # If interim 'please wait' arrived, consume next real sentence
+        if first_tts.get("interim"):
+            s1 = ws.receive_json()
+            assert s1["type"] == "tts_audio"
+            ws.send_json({"type": "sentence_played", "id": s1["sentence_id"], "turn_id": s1.get("turn_id", 1), "kind": "sentence"})
+        else:
+            ws.send_json({"type": "sentence_played", "id": first_tts["sentence_id"], "turn_id": first_tts.get("turn_id", 1), "kind": "sentence"})
 
-    # Read subsequent sentences or metrics message
-    received_metrics = False
-    for _ in range(10):
-        try:
-            m = ws.receive_json()
-            if m["type"] == "metrics":
-                received_metrics = True
-                assert "latencies_ms" in m
-                assert "response_delay" in m["latencies_ms"]
-                print(f"  Verified WebSocket metrics message: response_delay = {m['latencies_ms'].get('response_delay')} ms")
+        # Read subsequent sentences or metrics message
+        received_metrics = False
+        for _ in range(10):
+            try:
+                m = ws.receive_json()
+                if m["type"] == "metrics":
+                    received_metrics = True
+                    assert "latencies_ms" in m
+                    assert "response_delay" in m["latencies_ms"]
+                    print(f"  Verified WebSocket metrics message: response_delay = {m['latencies_ms'].get('response_delay')} ms")
+                    break
+            except Exception:
                 break
-        except Exception:
-            break
+finally:
+    config.GNANI_API_KEY = orig_key
 
 print("✓ Test 4 Passed: Full WebSocket pipeline dispatches 'metrics' with latency breakdown.\n")
 

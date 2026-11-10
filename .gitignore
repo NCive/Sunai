@@ -6,6 +6,7 @@
 .env
 .env.*
 *.env
+!.env.example
 
 # Large model weights & HuggingFace hub caches
 /Models/

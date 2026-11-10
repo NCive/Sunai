@@ -67,6 +67,14 @@ class PrismaSTTSession:
 
     async def send_audio(self, chunk: bytes) -> None:
         """Sends raw 16kHz 16-bit PCM chunk to Prisma."""
+        if not self.is_connected and config.GNANI_API_KEY:
+            logger.info("[PrismaSTT] Reconnecting expired STT session on audio...")
+            try:
+                await self.start()
+            except Exception as e:
+                logger.error(f"[PrismaSTT] Auto-reconnect failed: {e}")
+                return
+
         if not self.is_connected:
             return
 
@@ -74,6 +82,10 @@ class PrismaSTTSession:
             await self.client.send_audio(chunk)
         elif self._audio_queue:
             await self._audio_queue.put(chunk)
+
+    def reset_transcript(self) -> None:
+        """Clears accumulated transcript buffer after a turn is finalized."""
+        self.accumulated_text = ""
 
     async def _receive_loop(self) -> None:
         """Consumes incoming events from the Prisma WebSocket stream."""
@@ -97,6 +109,10 @@ class PrismaSTTSession:
                     pass
 
                 elif isinstance(event, StreamErrorEvent):
+                    if "session_end" in event.message:
+                        logger.info("[PrismaSTT] STT session ended normally by server (idle timeout).")
+                        self.is_connected = False
+                        break
                     logger.error(f"[PrismaSTT] Stream error: {event.message}")
 
         except asyncio.CancelledError:

@@ -113,11 +113,15 @@ class HistoryManager:
         if self.current_turn and 1 <= sentence_id <= len(self.current_turn.sentence_records):
             self.current_turn.sentence_records[sentence_id - 1]["audio_b64"] = audio_b64
 
-    def record_sentence_played(self, sentence_id: int) -> None:
+    def record_sentence_played(self, sentence_id: Any) -> None:
         """Marks sentence as heard up to sentence_id (1-indexed)."""
+        try:
+            num_id = int(sentence_id)
+        except (ValueError, TypeError):
+            return  # Non-integer IDs (e.g. idle_..., unclear_...) are transient prompts
         target_turn = self.current_turn or (self.turns[-1] if self.turns else None)
-        if target_turn and sentence_id > target_turn.heard_upto:
-            target_turn.heard_upto = sentence_id
+        if target_turn and num_id > target_turn.heard_upto:
+            target_turn.heard_upto = num_id
 
     def mark_interrupted(self) -> None:
         """Marks current turn as interrupted."""

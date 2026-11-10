@@ -33,10 +33,10 @@ class SunaiStateMachine:
     # Allowed state transitions
     VALID_TRANSITIONS: dict[str, Set[str]] = {
         "IDLE": {"LISTENING", "IDLE_CHECK", "SLEEP"},
-        "LISTENING": {"THINKING", "IDLE", "PAUSED", "IDLE_CHECK"},
+        "LISTENING": {"THINKING", "SPEAKING", "IDLE", "PAUSED", "IDLE_CHECK"},
         "THINKING": {"SPEAKING", "LISTENING", "IDLE"},
-        "SPEAKING": {"PAUSED", "LISTENING", "IDLE"},
-        "PAUSED": {"SPEAKING", "LISTENING", "IDLE"},
+        "SPEAKING": {"PAUSED", "LISTENING", "IDLE", "SPEAKING"},
+        "PAUSED": {"SPEAKING", "LISTENING", "IDLE", "THINKING"},
         "IDLE_CHECK": {"SLEEP", "LISTENING", "IDLE", "WAKE"},
         "SLEEP": {"WAKE", "LISTENING", "IDLE"},
         "WAKE": {"LISTENING", "IDLE"},

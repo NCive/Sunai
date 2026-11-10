@@ -36,7 +36,11 @@ export interface ServerMessage {
   state?: SphereState;
   text?: string;
   language?: string;
+  turn_id?: number;
   sentence_id?: number | string;
+  kind?: 'sentence' | 'filler';
+  is_last?: boolean;
+  source?: string;
   audio?: string; // Base64 encoded audio
   decision?: DecisionType;
   mode?: string;
@@ -53,7 +57,14 @@ export interface ServerMessage {
 
 export type StateChangeCallback = (state: SphereState) => void;
 export type TextCallback = (text: string, language: string) => void;
-export type TtsAudioCallback = (sentenceId: number | string, audio: ArrayBuffer, text?: string) => void;
+export type TtsAudioCallback = (
+  sentenceId: number | string,
+  audio: ArrayBuffer,
+  text?: string,
+  turnId?: number,
+  kind?: 'sentence' | 'filler',
+  isLast?: boolean
+) => void;
 export type PromptAudioCallback = (phrase: string, text: string, audio: ArrayBuffer) => void;
 export type DecisionCallback = (decision: DecisionType) => void;
 export type SourcesCallback = (sources: string[], refused: boolean) => void;
@@ -162,7 +173,7 @@ export class SunaiWebSocketClient {
       case 'tts_audio':
         if (msg.audio && msg.sentence_id !== undefined && this.onTtsAudio) {
           const audioBuffer = base64ToArrayBuffer(msg.audio);
-          this.onTtsAudio(msg.sentence_id, audioBuffer, msg.text);
+          this.onTtsAudio(msg.sentence_id, audioBuffer, msg.text, msg.turn_id, msg.kind, msg.is_last);
         }
         break;
 
@@ -229,8 +240,8 @@ export class SunaiWebSocketClient {
     this.sendJson({ type: 'vad_end' });
   }
 
-  public sendSentencePlayed(sentenceId: number | string): void {
-    this.sendJson({ type: 'sentence_played', id: sentenceId });
+  public sendSentencePlayed(sentenceId: number | string, turnId?: number, kind?: string): void {
+    this.sendJson({ type: 'sentence_played', id: sentenceId, turn_id: turnId, kind });
   }
 
   public sendPlaybackFinished(): void {

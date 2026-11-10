@@ -119,9 +119,10 @@ class TimbreTTSClient:
                 )
                 return wav_bytes
             except Exception as e:
-                logger.error(f"[TimbreTTS] Cloud synthesis failed ({e}). Falling back to synthetic.")
+                logger.error(f"[TimbreTTS] Cloud synthesis failed: {e}")
+                raise RuntimeError(f"Gnani Timbre TTS failed for text '{text[:40]}...': {e}") from e
 
-        # Fallback / Offline generator
-        logger.info(f"[TimbreTTS] Synthesizing offline fallback audio for text: '{text[:30]}...'")
+        # Fallback / Offline generator ONLY if no API key is configured
+        logger.warning(f"[TimbreTTS] No GNANI_API_KEY configured; generating synthetic audio for: '{text[:30]}...'")
         return _generate_synthetic_speech_wav(text, sample_rate=config.TIMBRE_SAMPLE_RATE)
 
