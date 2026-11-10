@@ -45,9 +45,12 @@ PRISMA_KEYWORDS: list[str] = [
     "Gnani", "Gnani.ai", "Prisma", "Timbre", "Armour365", "Inya", "Inya Workforce",
     "Inya Assist", "Inya Insights", "Inya DIY", "Vachana", "TVS Credit", "Bajaj Allianz", "Razorpay"
 ]
-PAUSE_PRISMA_TEXT_WAIT_SEC: float = 1.2
-STT_MIN_CONFIDENCE_THRESHOLD: float = 0.50
-VAD_SPEECH_PROB_UNCLEAR_THRESHOLD: float = 0.70
+# Light Noise Cancellation & Pause Evaluation (Items 2, 4, 5, 6)
+LIGHT_NOISE_MIN_VOICE_DURATION_MS: int = 80  # Fast sound ended <80ms with no text resumes as noise
+PAUSE_FIRST_CHECK_MS: int = 400  # Default pause check window in ms
+PAUSE_PRISMA_TEXT_WAIT_SEC: float = 0.50  # Gentle check window for Prisma text while PAUSED
+SAFETY_NET_SPEAKING_INTERRUPT: bool = True  # Safety net: real words while SPEAKING trigger pause even if browser VAD missed
+EXPERIMENTAL_DENOISE: bool = False  # Experimental denoiser switch (off by default)
 
 # TTS (Timbre) Configuration
 TIMBRE_MODEL: str = "timbre-v2.5"

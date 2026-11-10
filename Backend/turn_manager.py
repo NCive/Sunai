@@ -355,7 +355,7 @@ class TurnManager:
         If no text arrives or text is empty/low-confidence noise, classifies as noise and resumes.
         If real words arrive, classifies into noise, small_sound, go_on, interruption, or unclear.
         """
-        max_wait = getattr(config, "PAUSE_PRISMA_TEXT_WAIT_SEC", 1.2)
+        max_wait = getattr(config, "PAUSE_PRISMA_TEXT_WAIT_SEC", 0.50)
         min_check_sec = min(0.35, getattr(config, "PAUSE_FIRST_CHECK_MS", 400) / 1000.0)
         start_wait = time.time()
         try:
@@ -367,7 +367,7 @@ class TurnManager:
                 # If text has arrived and min_check_sec has elapsed, we can finalize
                 if elapsed >= min_check_sec and self.current_user_text.strip() and len(self.current_user_text.strip().split()) >= 1:
                     break
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.04)
 
             if self.sm.get_state() != "PAUSED":
                 return
@@ -379,26 +379,33 @@ class TurnManager:
                 else self.last_vad_meta.get("rms", 0.05)
             )
             duration = max(0.0, time.time() - self.paused_start_time)
-            speech_prob = self.last_vad_meta.get("speech_probability", 1.0)
-            peak = self.last_vad_meta.get("peak", 0.0)
+            vad_dur = self.last_vad_meta.get("duration_ms", 0.0)
+            min_voice_sec = getattr(config, "LIGHT_NOISE_MIN_VOICE_DURATION_MS", 80) / 1000.0
 
             if self.stub_override and config.ENABLE_STUB_DECISIONS:
                 decision = self.stub_override
                 reason = "stub_override"
+            elif not text:
+                # Mild check: if sound ended before min_voice_sec (80ms) or burst of noise returned no words from STT,
+                # resume silently as "noise" (no "ji?")
+                decision = "noise"
+                min_voice_ms = getattr(config, "LIGHT_NOISE_MIN_VOICE_DURATION_MS", 80)
+                if duration < min_voice_sec or (0 < vad_dur < min_voice_ms):
+                    reason = "light_noise_short_sound_no_text"
+                else:
+                    reason = "light_noise_burst_no_text"
             else:
+                # Any text with at least one real word must go through the keyword classifier
                 decision, reason = self.interruption_handler.evaluate(
                     text=text,
                     has_voice=True,
                     rms_energy=avg_energy,
                     duration_sec=duration,
-                    confidence=1.0 if text else 0.0,
-                    speech_probability=speech_prob,
                 )
 
             logger.info(
-                f"[Interruption Diagnostic] vad_start eval | duration={duration:.2f}s, peak={peak:.3f}, "
-                f"RMS={avg_energy:.4f}, speech_prob={speech_prob:.2f}, prisma_text='{text}', "
-                f"classification={decision} ({reason})"
+                f"[Interruption Diagnostic] vad_start eval | duration={duration:.2f}s, "
+                f"RMS={avg_energy:.4f}, prisma_text='{text}', classification={decision} ({reason})"
             )
 
             action_taken = "resumed"

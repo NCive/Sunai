@@ -37,35 +37,18 @@ export interface AudioCaptureConfig {
   echoCancellation: boolean;
   noiseSuppression: boolean;
   autoGainControl: boolean;
-  highPassFilterHz: number;
-  noiseGatingEnabled: boolean;
-  noiseGatePreRollMs: number;
-  noiseGateHangoverMs: number;
   analyserFftSize: number;
   analyserSmoothing: number;
 }
 
 export interface VadConfig {
-  useNeuralVad: boolean;
-  vadModelPath: string;
-  vadWasmPath: string;
-  vadWorkletPath: string;
   energyThreshold: number;
-  energyThresholdSpeaking: number;
-  speakingSpeechProbThreshold: number;
-  listeningSpeechProbThreshold: number;
-  speakingMinDurationMs: number;
-  listeningMinDurationMs: number;
-  duckVolume: number;
-  duckRampMs: number;
-  minSpikeDurationMs: number;
-  speechBandLowHz: number;
-  speechBandHighHz: number;
-  adaptiveNoiseAlpha: number;
+  minVoiceDurationMs: number;
   speechHoldMs: number;
-  minSpeechDurationMs: number;
   checkIntervalMs: number;
-  calibratedNoiseFloor: number;
+  highPassFilterEnabled: boolean;
+  highPassFilterHz: number;
+  experimentalDenoise: boolean;
 }
 
 export interface PlayQueueConfig {
@@ -138,35 +121,18 @@ export const CONFIG: FrontendConfig = {
     chunkDurationMs: 100,
     echoCancellation: true,
     noiseSuppression: true,
-    autoGainControl: false, // Default off to prevent boosting background noise
-    highPassFilterHz: 100,
-    noiseGatingEnabled: true,
-    noiseGatePreRollMs: 300,
-    noiseGateHangoverMs: 400,
+    autoGainControl: false, // Baseline: false per Item 1
     analyserFftSize: 256,
     analyserSmoothing: 0.8,
   },
   vad: {
-    useNeuralVad: true,
-    vadModelPath: '/vad/silero_vad_v5.onnx',
-    vadWasmPath: '/vad/',
-    vadWorkletPath: '/vad/vad.worklet.bundle.min.js',
-    energyThreshold: 0.018,
-    energyThresholdSpeaking: 0.035,
-    speakingSpeechProbThreshold: 0.65,
-    listeningSpeechProbThreshold: 0.45,
-    speakingMinDurationMs: 200,
-    listeningMinDurationMs: 80,
-    duckVolume: 0.25,
-    duckRampMs: 40,
-    minSpikeDurationMs: 120,
-    speechBandLowHz: 300,
-    speechBandHighHz: 3400,
-    adaptiveNoiseAlpha: 0.05,
+    energyThreshold: 0.014, // Reduced slightly from 0.018 to make quiet/normal voice detection more sensitive
+    minVoiceDurationMs: 80, // Reduced from 120ms to 80ms for quicker, more natural speech onset response
     speechHoldMs: 350,
-    minSpeechDurationMs: 80,
     checkIntervalMs: 20,
-    calibratedNoiseFloor: 0.005,
+    highPassFilterEnabled: true, // Gentle 60Hz filter on VAD analysis path ONLY, not on audio sent to STT
+    highPassFilterHz: 60, // Reduced from 80Hz to 60Hz to preserve lower vocal fundamental frequencies
+    experimentalDenoise: false, // Experimental denoiser flag (off by default)
   },
   playQueue: {
     fadeOutTimeSec: 0.015,

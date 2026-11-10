@@ -168,15 +168,9 @@ def classify_utterance(
         return "noise", "rule_a_empty_text"
 
     # Check if utterance contains ONLY non-lexical acoustic filler sounds
-    if all(t in NON_LEXICAL_SOUNDS for t in tokens) and norm not in BACKCHANNEL_WORDS:
+    if (all(t in NON_LEXICAL_SOUNDS for t in tokens) or norm in NON_LEXICAL_SOUNDS) and norm not in BACKCHANNEL_WORDS:
         logger.info(f"[Interruption] Rule A fired: non-lexical sound '{norm}' -> noise")
         return "noise", f"rule_a_non_lexical:{norm}"
-
-    # Low confidence threshold with 2 words or fewer (noise / acoustic artifact)
-    min_confidence = getattr(config, "STT_MIN_CONFIDENCE_THRESHOLD", 0.50)
-    if confidence < min_confidence and word_count <= 2:
-        logger.info(f"[Interruption] Rule A fired: low confidence ({confidence:.2f} < {min_confidence}) with <= 2 words -> noise")
-        return "noise", f"rule_a_low_confidence:{confidence:.2f}"
 
     # -------------------------------------------------------------
     # RULE B: STOP WORDS or '?' (Immediate Interruption)

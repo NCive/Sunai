@@ -47,10 +47,6 @@ export const App: React.FC = () => {
   const [isRefused, setIsRefused] = useState<boolean>(false);
   const [metricsData, setMetricsData] = useState<MetricsPayload | null>(null);
 
-  // Noise calibration
-  const [noiseFloor, setNoiseFloor] = useState<number>(CONFIG.vad.calibratedNoiseFloor);
-  const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
-
   // PlayQueue status
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [activeSentenceId, setActiveSentenceId] = useState<number | string | null>(null);
@@ -282,12 +278,11 @@ export const App: React.FC = () => {
         const analyser = capture.getAnalyser();
         if (analyser) {
           vad.setAssistantSpeaking(sphereState === 'SPEAKING');
-          await vad.start(
+          vad.start(
             analyser,
             (meta) => {
-              console.log('[App] VAD Stage 2 Voice Start confirmed:', meta);
+              console.log('[App] VAD Voice Start confirmed:', meta);
               setIsSpeakingVad(true);
-              micCaptureRef.current?.setVoiceActive(true);
 
               // Instant browser pause if audio is playing (Section 6 & 8)
               if (playQueueRef.current && playQueueRef.current.getIsPlaying()) {
@@ -309,29 +304,7 @@ export const App: React.FC = () => {
             () => {
               console.log('[App] VAD Voice End');
               setIsSpeakingVad(false);
-              micCaptureRef.current?.setVoiceActive(false);
               wsClientRef.current?.sendVadEnd();
-            },
-            (duckVol) => {
-              console.log(`[App] VAD Stage 1: Initial voice frame -> Ducking bot volume to ${(duckVol * 100).toFixed(0)}%`);
-              playQueueRef.current?.duck(duckVol);
-            },
-            () => {
-              console.log('[App] VAD Sound blip ceased -> Restoring bot volume to 100%');
-              playQueueRef.current?.unduck();
-            },
-            () => {
-              if (playQueueRef.current?.getIsPlaying()) {
-                if (interruptionModeRef.current === 'pause_first') {
-                  playQueueRef.current.pause();
-                } else {
-                  playQueueRef.current.clear();
-                }
-              }
-            },
-            () => {
-              console.log('[App] VAD Noise blip ignored without pause');
-              wsClientRef.current?.sendBlipIgnored();
             }
           );
         }
@@ -346,19 +319,6 @@ export const App: React.FC = () => {
       }
     }
   }, [isMicOn, sphereState]);
-
-  const handleCalibrateNoise = async () => {
-    if (!vadRef.current || isCalibrating) return;
-    setIsCalibrating(true);
-    try {
-      const floor = await vadRef.current.calibrateSilence();
-      setNoiseFloor(floor);
-    } catch (err) {
-      console.warn('[App] Noise calibration failed:', err);
-    } finally {
-      setIsCalibrating(false);
-    }
-  };
 
   const handleLanguageChange = (lang: string) => {
     setDetectedLanguage(lang);
@@ -516,9 +476,6 @@ export const App: React.FC = () => {
           micEnergy={micEnergy}
           isSpeakingVad={isSpeakingVad}
           micChunksCount={micChunksCount}
-          noiseFloor={noiseFloor}
-          isCalibrating={isCalibrating}
-          onCalibrateNoise={handleCalibrateNoise}
           detectedLanguage={detectedLanguage}
           onLanguageChange={handleLanguageChange}
           sources={activeSources}

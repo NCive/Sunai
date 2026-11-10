@@ -159,6 +159,31 @@ class SunaiConnectionManager:
             }
             asyncio.create_task(self.send_json(msg))
 
+            # SAFETY NET (Item 5):
+            # If state is SPEAKING and Prisma returns real words (not only backchannel words),
+            # pause immediately and classify, even if browser VAD did not fire.
+            if getattr(config, "SAFETY_NET_SPEAKING_INTERRUPT", True):
+                if self.sm.get_state() == "SPEAKING" and text.strip():
+                    decision, _ = self.turn_manager.interruption_handler.evaluate(
+                        text=text.strip(),
+                        has_voice=True,
+                        rms_energy=0.05,
+                        duration_sec=0.3,
+                    )
+                    if decision in ("interruption", "go_on"):
+                        logger.info(
+                            f"[Safety Net] Prisma STT returned real words '{text.strip()}' while SPEAKING "
+                            f"(decision={decision}) -> triggering immediate pause"
+                        )
+                        asyncio.create_task(
+                            self.turn_manager.on_user_voice_start(
+                                duration_ms=250.0,
+                                peak=0.5,
+                                rms=0.05,
+                                on_turn_complete=self.on_turn_complete,
+                            )
+                        )
+
         # Start STT session
         self.stt_session = PrismaSTTSession(on_transcript=on_stt_transcript)
         await self.stt_session.start()

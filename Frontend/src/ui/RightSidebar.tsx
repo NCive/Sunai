@@ -16,9 +16,6 @@ export interface RightSidebarProps {
   micEnergy: number;
   isSpeakingVad: boolean;
   micChunksCount: number;
-  noiseFloor?: number;
-  isCalibrating?: boolean;
-  onCalibrateNoise?: () => void;
 
   // Intelligence & status
   detectedLanguage: string;
@@ -68,9 +65,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   micEnergy,
   isSpeakingVad,
   micChunksCount,
-  noiseFloor = 0.005,
-  isCalibrating = false,
-  onCalibrateNoise,
   detectedLanguage,
   onLanguageChange,
   sources,
@@ -212,30 +206,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#94a3b8' }}>
             <span>Chunks Streamed:</span>
             <strong style={{ color: '#e2e8f0' }}>{micChunksCount}</strong>
-          </div>
-
-          {/* Adaptive Noise Floor & Calibration Button */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-            <button
-              onClick={onCalibrateNoise}
-              disabled={!isMicOn || isCalibrating}
-              style={{
-                padding: '4px 8px',
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                background: isCalibrating ? 'rgba(245, 158, 11, 0.2)' : 'rgba(56, 189, 248, 0.12)',
-                color: isCalibrating ? '#fbbf24' : '#38bdf8',
-                border: `1px solid ${isCalibrating ? 'rgba(245, 158, 11, 0.4)' : 'rgba(56, 189, 248, 0.3)'}`,
-                borderRadius: '6px',
-                cursor: !isMicOn || isCalibrating ? 'not-allowed' : 'pointer',
-              }}
-              title="Measure 2 seconds of ambient room silence to adaptively tune noise rejection"
-            >
-              {isCalibrating ? '⏳ Calibrating (2s)...' : 'Calibrate noise (2 s of silence)'}
-            </button>
-            <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-              Floor: <strong style={{ color: '#e2e8f0' }}>{(noiseFloor * 1000).toFixed(1)} mRMS</strong>
-            </span>
           </div>
         </div>
       </SidebarCard>

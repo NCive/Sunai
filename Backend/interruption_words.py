@@ -9,6 +9,7 @@ from typing import Dict, Set, List
 NON_LEXICAL_SOUNDS: Set[str] = {
     "uh", "um", "ah", "er", "erm", "eh", "oh", "huh", "shh", "sh", "ts",
     "uhh", "umm", "ahh", "err", "ohh", "ooh",
+    "click", "tap", "desk tap", "cough", "snort",
 }
 
 # BACKCHANNEL (small_sound -> resume)
