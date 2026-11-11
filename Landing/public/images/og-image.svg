@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <radialGradient id="bgGlow" cx="600" cy="315" r="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#116466" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#0D1C19" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#070F0D" />
+    </radialGradient>
+    <linearGradient id="peachGrad" x1="400" y1="200" x2="800" y2="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D1E8E2" />
+      <stop offset="50%" stop-color="#FFCB9A" />
+      <stop offset="100%" stop-color="#D9B08C" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bgGlow)" />
+  
+  <!-- Outer HUD boundary brackets -->
+  <path d="M 40 80 L 40 40 L 80 40" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
+  <path d="M 1160 80 L 1160 40 L 1120 40" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
+  <path d="M 40 550 L 40 590 L 80 590" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
+  <path d="M 1160 550 L 1160 590 L 1120 590" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
+
+  <!-- Concentric Rings & Geodesic accents -->
+  <circle cx="600" cy="315" r="260" stroke="#116466" stroke-width="1.5" stroke-dasharray="6 6" />
+  <circle cx="600" cy="315" r="190" stroke="#D1E8E2" stroke-opacity="0.2" stroke-width="1.5" />
+  <circle cx="600" cy="315" r="130" stroke="#FFCB9A" stroke-opacity="0.4" stroke-width="2" />
+  
+  <text x="600" y="210" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="300" font-size="20" fill="#D1E8E2" letter-spacing="0.4em">
+    PRESENTATION DECK
+  </text>
+  <text x="600" y="275" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="700" font-size="64" fill="url(#peachGrad)" letter-spacing="0.25em">
+    SUNAI
+  </text>
+  <text x="600" y="340" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="400" font-size="28" fill="#D1E8E2" letter-spacing="0.1em">
+    PAUSE FIRST, DECIDE SECOND.
+  </text>
+  <text x="600" y="390" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="400" font-size="18" fill="#A3C8BF" letter-spacing="0.02em">
+    Timing-First Voice AI Running Locally on a 16 GB Laptop
+  </text>
+  
+  <!-- Decision Dots -->
+  <circle cx="510" cy="460" r="7" fill="#2FD3A5" />
+  <text x="528" y="466" font-family="'Inter', sans-serif" font-size="15" fill="#D1E8E2">Resume</text>
+  
+  <circle cx="630" cy="460" r="7" fill="#FF6A5C" />
+  <text x="648" y="466" font-family="'Inter', sans-serif" font-size="15" fill="#D1E8E2">Stop &amp; Listen</text>
+
+  <circle cx="770" cy="460" r="7" fill="#FFCB9A" />
+  <text x="788" y="466" font-family="'Inter', sans-serif" font-size="15" fill="#D1E8E2">Clarify</text>
+</svg>

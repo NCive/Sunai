@@ -1,0 +1,163 @@
+@import '@fontsource/raleway/300.css';
+@import '@fontsource/raleway/400.css';
+@import '@fontsource/raleway/500.css';
+@import '@fontsource/raleway/700.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/noto-sans-devanagari/400.css';
+@import '@fontsource/noto-sans-devanagari/600.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-charcoal: #2C3531;
+  --color-teal: #116466;
+  --color-tan: #D9B08C;
+  --color-peach: #FFCB9A;
+  --color-mint: #D1E8E2;
+  --color-decision-green: #2FD3A5;
+  --color-decision-red: #FF6A5C;
+  --color-decision-amber: #FFCB9A;
+  --bg-gradient-start: #070F0D;
+  --bg-gradient-mid: #0D1C19;
+  --bg-gradient-end: #142824;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: radial-gradient(circle at 50% 30%, #116466 0%, #0D1C19 45%, #070F0D 90%);
+  background-attachment: fixed;
+  color: #D1E8E2;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* High-performance Dark Teal Card with 1px Teal Border (Zero backdrop-filter overhead over WebGL canvas) */
+.deck-card {
+  background: rgba(13, 28, 25, 0.92);
+  border: 1px solid rgba(17, 100, 102, 0.45);
+}
+
+.gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.deck-card-hover {
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.deck-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(209, 232, 226, 0.35);
+  box-shadow: 0 10px 25px -8px rgba(17, 100, 102, 0.4);
+}
+
+/* HUD Corner Brackets Frame */
+.hud-corner-bracket {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  border-color: rgba(209, 232, 226, 0.4);
+}
+
+.hud-corner-tl {
+  top: 0;
+  left: 0;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.hud-corner-tr {
+  top: 0;
+  right: 0;
+  border-top: 1px solid;
+  border-right: 1px solid;
+}
+
+.hud-corner-bl {
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+}
+
+.hud-corner-br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+/* Glow effects */
+.glow-mint {
+  box-shadow: 0 0 20px rgba(209, 232, 226, 0.3);
+}
+
+.glow-peach {
+  box-shadow: 0 0 20px rgba(255, 203, 154, 0.35);
+}
+
+.glow-decision-green {
+  box-shadow: 0 0 20px rgba(47, 211, 165, 0.45);
+}
+
+.glow-decision-red {
+  box-shadow: 0 0 20px rgba(255, 106, 92, 0.45);
+}
+
+.glow-decision-amber {
+  box-shadow: 0 0 20px rgba(255, 203, 154, 0.45);
+}
+
+/* Accessible focus styling */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #FFCB9A;
+  outline-offset: 3px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #070F0D;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(17, 100, 102, 0.6);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(209, 232, 226, 0.5);
+}
+
+/* Reduced motion preference and explicit toggle overrides */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html.reduced-motion *,
+html.reduced-motion ::before,
+html.reduced-motion ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
