@@ -5,12 +5,11 @@ export interface BackgroundParticlesProps {
   reduceMotion?: boolean;
 }
 
-interface Particle {
+interface Star {
   x: number;
   y: number;
   radius: number;
   alpha: number;
-  speedX: number;
   speedY: number;
 }
 
@@ -21,7 +20,7 @@ export const BackgroundParticles: React.FC<BackgroundParticlesProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    if (lowPower) return; // Drop first if low power is enabled
+    if (lowPower) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -40,38 +39,40 @@ export const BackgroundParticles: React.FC<BackgroundParticlesProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
-    // Create 45 faint particles
-    const particleCount = 45;
-    const particles: Particle[] = [];
-    for (let i = 0; i < particleCount; i++) {
-      particles.push({
+    // Modest star count (25 faint drifting stars)
+    const starCount = 25;
+    const stars: Star[] = [];
+    for (let i = 0; i < starCount; i++) {
+      stars.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        radius: Math.random() * 1.5 + 0.5,
-        alpha: Math.random() * 0.45 + 0.1,
-        speedX: (Math.random() - 0.5) * 0.25,
-        speedY: (Math.random() - 0.5) * 0.25,
+        radius: Math.random() * 1.2 + 0.4,
+        alpha: Math.random() * 0.35 + 0.1,
+        speedY: (Math.random() * 0.08 + 0.02) * -1, // Very slow upward drift
       });
     }
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        if (!reduceMotion) {
-          p.x += p.speedX;
-          p.y += p.speedY;
-
-          if (p.x < 0) p.x = width;
-          if (p.x > width) p.x = 0;
-          if (p.y < 0) p.y = height;
-          if (p.y > height) p.y = 0;
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
+        if (!reduceMotion && !document.hidden) {
+          s.y += s.speedY;
+          if (s.y < 0) {
+            s.y = height;
+            s.x = Math.random() * width;
+          }
         }
 
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        // Starlight glow with rare golden star & aurora cyan particles
+        ctx.fillStyle = (i % 8 === 0)
+          ? `rgba(229, 193, 139, ${s.alpha})`
+          : (i % 4 === 0)
+          ? `rgba(98, 201, 232, ${s.alpha})`
+          : `rgba(165, 200, 255, ${s.alpha})`;
         ctx.fill();
       }
 
@@ -107,4 +108,3 @@ export const BackgroundParticles: React.FC<BackgroundParticlesProps> = ({
     />
   );
 };
-

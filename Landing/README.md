@@ -78,14 +78,14 @@ All 16 slides are registered in `Landing/src/deck/slides.tsx` in exact order:
 | **04** | `outcomes` | 04 / DECISIONS | Three Classification Outcomes | `flip` *(3D flip)* |
 | **05** | `simulation` | 05 / TESTBED | Decision-Ring Simulation | `zoom` *(zoom in)* |
 | **06** | `features` | 06 / CAPABILITIES | Verified Capabilities | `push` *(push left)* |
-| **07** | `languages` | 07 / MULTILINGUAL | Multilingual Support | `fade-through` *(deep charcoal)* |
+| **07** | `languages` | 07 / MULTILINGUAL | Multilingual Support | `fade-through` *(space black)* |
 | **08** | `architecture` | 08 / TOPOLOGY | System Architecture | `wipe-down` |
 | **09** | `pipeline` | 09 / PIPELINE TIMING | Streaming Latency Pipeline | `split-horizontal` |
 | **10** | `hardware` | 10 / HARDWARE FOOTPRINT | Runs on Bare-Minimum Laptop | `push-up` |
 | **11** | `why-qwen` | 11 / MODEL SELECTION | Why Qwen3.5-4B | `blur-dissolve` |
 | **12** | `status` | 12 / TRANSPARENCY | Honest Status | `push` *(push left)* |
 | **13** | `tech-stack` | 13 / TECHNOLOGIES | Technology Stack | `zoom-out` |
-| **14** | `demo` | 14 / LIVE DEMO | Demonstration | `fade-through` *(deep charcoal)* |
+| **14** | `demo` | 14 / LIVE DEMO | Demonstration | `fade-through` *(space black)* |
 | **15** | `team` | 15 / CONTRIBUTORS | Team and Credits | `iris` *(ring lands at center)* |
 | **16** | `closing` | 16 / CONCLUSION | Pause First. Decide Second. | Rest |
 

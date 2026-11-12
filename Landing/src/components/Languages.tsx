@@ -46,7 +46,7 @@ interface LanguagesProps {
 
 export function Languages({ reducedMotion }: LanguagesProps) {
   return (
-    <section id="languages" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#06070a]">
+    <section id="languages" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#02030B]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}

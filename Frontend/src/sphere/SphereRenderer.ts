@@ -1,8 +1,5 @@
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { CONFIG } from '../config';
+import { CONFIG, THEME_DECISION_COLORS } from '../config';
 
 export type SphereState =
   | 'IDLE'
@@ -22,6 +19,7 @@ interface DotData {
   col: number;
   angle: number;
   latRatio: number;
+  baseColor: THREE.Color;
 }
 
 /**
@@ -56,18 +54,31 @@ function createDotTexture(): THREE.Texture {
   return texture;
 }
 
+// Pre-instantiated theme colors for "Cosmic Observatory" palette
+const COLOR_ELECTRIC_BLUE = new THREE.Color('#477FF5');
+const COLOR_STARLIGHT = new THREE.Color('#A5C8FF');
+const COLOR_AURORA_CYAN = new THREE.Color('#62C9E8');
+const COLOR_GOLDEN_STAR = new THREE.Color('#E5C18B');
+const COLOR_COSMIC_BLUE = new THREE.Color('#244DA8');
+
+const THEME_DECISION_MAP: Record<DecisionType, THREE.Color> = {
+  noise: new THREE.Color(THEME_DECISION_COLORS.noise),
+  small_sound: new THREE.Color(THEME_DECISION_COLORS.small_sound),
+  go_on: new THREE.Color(THEME_DECISION_COLORS.go_on),
+  interruption: new THREE.Color(THEME_DECISION_COLORS.interruption),
+  unclear: new THREE.Color(THEME_DECISION_COLORS.unclear),
+};
+
 /**
  * SphereRenderer
- * Manages the Three.js scene, outer bumped glowing ring, inner latitude dot sphere,
- * decision ring, audio analyser reactivity, and state blending.
+ * Manages the Three.js scene, subtle orbit lines, inner latitude dot sphere,
+ * decision ring, audio analyser reactivity, and state blending in the "Cosmic Observatory" palette.
  */
 export class SphereRenderer {
   private container: HTMLElement;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private composer: EffectComposer | null = null;
-  private bloomPass: UnrealBloomPass | null = null;
 
   // Dot sphere
   private pointsMesh: THREE.Points | null = null;
@@ -79,17 +90,20 @@ export class SphereRenderer {
   private ringMesh: THREE.Mesh | null = null;
   private ringGeometry: THREE.BufferGeometry | null = null;
   private ringMaterial: THREE.MeshBasicMaterial | null = null;
-  private ringSegmentCount = 128;
+  private ringSegmentCount = 96;
 
   // Decision ring
   private decisionRingMesh: THREE.Line | null = null;
   private decisionRingGeometry: THREE.BufferGeometry | null = null;
   private decisionRingMaterial: THREE.LineBasicMaterial | null = null;
-  private decisionSegmentCount = 128;
+  private decisionSegmentCount = 96;
 
   // Orbiting dots (for THINKING state)
   private orbitPointsMesh: THREE.Points | null = null;
   private orbitDotCount = 8;
+
+  // Subtle orbital tracks
+  private orbitLinesGroup: THREE.Group | null = null;
 
   // Audio analysers
   private micAnalyser: AnalyserNode | null = null;
@@ -119,10 +133,13 @@ export class SphereRenderer {
   private isLowPower: boolean;
   private isReduceMotion: boolean;
 
-  // FPS tracking
+  // FPS tracking & frame cap throttling
   private onFpsUpdate: ((fps: number) => void) | null = null;
   private frameCount = 0;
   private lastFpsTime = performance.now();
+  private lastRenderTime = performance.now();
+  private lastActiveTime = performance.now();
+  private isTabHidden = false;
   private resizeObserver: ResizeObserver | null = null;
 
   constructor(
@@ -142,38 +159,28 @@ export class SphereRenderer {
     this.camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
     this.camera.position.z = 7.5;
 
-    // 2. WebGL Renderer with transparency
+    // 2. WebGL Renderer - Light weight, no postprocessing passes, capped at 1.25 pixel ratio
     this.renderer = new THREE.WebGLRenderer({
       antialias: !this.isLowPower,
       alpha: true,
       powerPreference: 'high-performance',
     });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     this.renderer.setClearColor(0x000000, 0); // Transparent canvas
     container.appendChild(this.renderer.domElement);
 
-    // 3. Post-processing Bloom (if not in lowPower mode)
-    if (!this.isLowPower) {
-      const renderScene = new RenderPass(this.scene, this.camera);
-      this.bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(width, height),
-        CONFIG.sphere.bloomStrength,
-        CONFIG.sphere.bloomRadius,
-        CONFIG.sphere.bloomThreshold
-      );
-      this.composer = new EffectComposer(this.renderer);
-      this.composer.addPass(renderScene);
-      this.composer.addPass(this.bloomPass);
-    }
-
-    // 4. Build elements
+    // 3. Build elements
+    this.buildSubtleOrbitLines();
     this.buildDotSphere();
     this.buildOuterRing();
     this.buildDecisionRing();
     this.buildOrbitingDots();
 
-    // 5. Start loop and observe stage container with ResizeObserver
+    // 4. Tab visibility & Resize observing
+    this.handleVisibilityChange = this.handleVisibilityChange.bind(this);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+
     this.handleResize = this.handleResize.bind(this);
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => {
@@ -183,7 +190,18 @@ export class SphereRenderer {
     } else {
       window.addEventListener('resize', this.handleResize);
     }
+
+    // 5. Start animation loop
     this.startLoop();
+  }
+
+  private handleVisibilityChange(): void {
+    this.isTabHidden = document.hidden;
+    if (!this.isTabHidden) {
+      this.lastRenderTime = performance.now();
+      this.lastActiveTime = performance.now();
+      this.clock.getDelta(); // flush delta
+    }
   }
 
   public setAudioSources(mic: AnalyserNode | null, playQueue: AnalyserNode | null): void {
@@ -197,6 +215,7 @@ export class SphereRenderer {
     this.currentState = nextState;
     this.stateTransitionStart = performance.now();
     this.stateTransitionProgress = 0.0;
+    this.lastActiveTime = performance.now();
 
     if (nextState === 'PAUSED') {
       this.pausedStartTime = performance.now();
@@ -217,12 +236,11 @@ export class SphereRenderer {
   public setDecision(decision: DecisionType): void {
     this.currentDecision = decision;
     this.decisionTimestamp = performance.now();
+    this.lastActiveTime = performance.now();
 
     if (decision === 'interruption' && !this.isReduceMotion) {
-      // Quick burst on real interruption
       this.burstIntensity = 1.0;
     } else if (decision === 'unclear') {
-      // Small head-tilt wobble for "ji?"
       this.wobbleIntensity = 1.0;
     }
   }
@@ -233,26 +251,45 @@ export class SphereRenderer {
     }
     if (options.lowPower !== undefined && options.lowPower !== this.isLowPower) {
       this.isLowPower = options.lowPower;
-      // Rebuild points with new dot count
       this.buildDotSphere();
-      if (this.isLowPower) {
-        this.composer = null;
-        this.bloomPass = null;
-      } else {
-        const width = this.container.clientWidth;
-        const height = this.container.clientHeight;
-        const renderScene = new RenderPass(this.scene, this.camera);
-        this.bloomPass = new UnrealBloomPass(
-          new THREE.Vector2(width, height),
-          CONFIG.sphere.bloomStrength,
-          CONFIG.sphere.bloomRadius,
-          CONFIG.sphere.bloomThreshold
-        );
-        this.composer = new EffectComposer(this.renderer);
-        this.composer.addPass(renderScene);
-        this.composer.addPass(this.bloomPass);
-      }
     }
+  }
+
+  /**
+   * Builds subtle, thin orbital tracks around the sphere
+   */
+  private buildSubtleOrbitLines(): void {
+    if (this.orbitLinesGroup) {
+      this.scene.remove(this.orbitLinesGroup);
+      this.orbitLinesGroup = null;
+    }
+
+    const group = new THREE.Group();
+    const radiuses = [CONFIG.sphere.sphereRadius * 1.08, CONFIG.sphere.sphereRadius * 1.25];
+    const tilts = [0.25, -0.35];
+
+    radiuses.forEach((r, idx) => {
+      const segments = 64;
+      const positions = new Float32Array((segments + 1) * 3);
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2;
+        positions[i * 3] = Math.cos(theta) * r;
+        positions[i * 3 + 1] = Math.sin(theta) * r * Math.sin(tilts[idx]);
+        positions[i * 3 + 2] = Math.sin(theta) * r * Math.cos(tilts[idx]);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.LineBasicMaterial({
+        color: COLOR_COSMIC_BLUE,
+        transparent: true,
+        opacity: 0.18,
+      });
+      const line = new THREE.Line(geo, mat);
+      group.add(line);
+    });
+
+    this.orbitLinesGroup = group;
+    this.scene.add(group);
   }
 
   /**
@@ -276,12 +313,11 @@ export class SphereRenderer {
     const positions: number[] = [];
     const colors: number[] = [];
 
-    // Calculate dots per row proportional to circumference cos(phi)
     const circumferences: number[] = [];
     let totalCircumference = 0;
     for (let r = 0; r < rowCount; r++) {
       const v = (r + 0.5) / rowCount;
-      const phi = (v - 0.5) * Math.PI; // -PI/2 to +PI/2
+      const phi = (v - 0.5) * Math.PI;
       const c = Math.max(0.08, Math.cos(phi));
       circumferences.push(c);
       totalCircumference += c;
@@ -290,7 +326,7 @@ export class SphereRenderer {
     for (let r = 0; r < rowCount; r++) {
       const v = (r + 0.5) / rowCount;
       const phi = (v - 0.5) * Math.PI;
-      const latRatio = Math.abs(v - 0.5) * 2.0; // 0 at equator, 1 at poles
+      const latRatio = Math.abs(v - 0.5) * 2.0;
       const dotsInRow = Math.max(
         6,
         Math.round((circumferences[r] / totalCircumference) * dotCount)
@@ -303,9 +339,24 @@ export class SphereRenderer {
         const z = radius * Math.cos(phi) * Math.sin(theta);
 
         positions.push(x, y, z);
-        // Base alpha: middle rows are slightly fainter so background shows through
         const baseAlpha = 0.25 + 0.75 * Math.pow(latRatio, 0.7);
-        colors.push(baseAlpha, baseAlpha, baseAlpha);
+        // Base idle particle colors in the range Electric blue (#477FF5), Starlight (#A5C8FF), Aurora cyan (#62C9E8), with rare Golden star (#E5C18B)
+        let dotColor = COLOR_ELECTRIC_BLUE;
+        if (i % 16 === 0) {
+          dotColor = COLOR_GOLDEN_STAR;
+        } else if (i % 4 === 1) {
+          dotColor = COLOR_AURORA_CYAN;
+        } else if (i % 4 === 2) {
+          dotColor = COLOR_STARLIGHT;
+        } else {
+          dotColor = COLOR_ELECTRIC_BLUE;
+        }
+
+        colors.push(
+          dotColor.r * baseAlpha,
+          dotColor.g * baseAlpha,
+          dotColor.b * baseAlpha
+        );
 
         this.dotData.push({
           basePosition: new THREE.Vector3(x, y, z),
@@ -313,6 +364,7 @@ export class SphereRenderer {
           col: i,
           angle: theta,
           latRatio,
+          baseColor: dotColor,
         });
       }
     }
@@ -341,7 +393,7 @@ export class SphereRenderer {
   }
 
   /**
-   * Builds thick glowing outer ring with spectrum bump vertices.
+   * Builds glowing outer ring with spectrum bump vertices.
    */
   private buildOuterRing(): void {
     if (this.ringMesh) {
@@ -356,7 +408,6 @@ export class SphereRenderer {
     const positions = new Float32Array((segments + 1) * 2 * 3);
     const indices: number[] = [];
 
-    // Create a circular quad ribbon for the ring
     for (let i = 0; i <= segments; i++) {
       const idx = i * 2;
       indices.push(idx, idx + 1, (idx + 2) % ((segments + 1) * 2));
@@ -372,9 +423,9 @@ export class SphereRenderer {
 
     this.ringGeometry = geometry;
     this.ringMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: COLOR_ELECTRIC_BLUE,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.35,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -401,9 +452,9 @@ export class SphereRenderer {
 
     this.decisionRingGeometry = geometry;
     this.decisionRingMaterial = new THREE.LineBasicMaterial({
-      color: 0xffffff,
+      color: COLOR_STARLIGHT,
       transparent: true,
-      opacity: 0.0,
+      opacity: 0.20,
       linewidth: 2,
       blending: THREE.AdditiveBlending,
     });
@@ -429,7 +480,7 @@ export class SphereRenderer {
     const material = new THREE.PointsMaterial({
       size: 0.12,
       map: createDotTexture(),
-      color: 0xffffff,
+      color: COLOR_AURORA_CYAN,
       transparent: true,
       opacity: 0.0,
       blending: THREE.AdditiveBlending,
@@ -441,11 +492,38 @@ export class SphereRenderer {
   }
 
   /**
-   * Main animation frame loop.
+   * Main animation frame loop with 60fps active / 30fps idle throttling
    */
   private startLoop(): void {
     const render = () => {
       this.animFrameId = requestAnimationFrame(render);
+
+      if (this.isTabHidden) {
+        return; // Paused completely when tab is hidden
+      }
+
+      const now = performance.now();
+      const isActive =
+        this.currentState !== 'IDLE' && this.currentState !== 'SLEEP'
+          ? true
+          : (this.smoothedSpectrum[0] || 0) > 0.04 ||
+            this.burstIntensity > 0.01 ||
+            this.wobbleIntensity > 0.01 ||
+            this.stateTransitionProgress < 1.0;
+
+      if (isActive) {
+        this.lastActiveTime = now;
+      }
+
+      const isIdle = now - this.lastActiveTime > 1000;
+      const targetFps = isIdle ? 30 : 60;
+      const minInterval = 1000 / targetFps - 2;
+
+      if (now - this.lastRenderTime < minInterval) {
+        return; // Throttle to target FPS
+      }
+
+      this.lastRenderTime = now;
       const delta = this.clock.getDelta();
       const elapsed = this.clock.getElapsedTime();
 
@@ -457,7 +535,7 @@ export class SphereRenderer {
       this.animateDecisionRing(elapsed);
       this.animateOrbitingDots(elapsed);
 
-      // Whole-sphere rotation (if motion enabled)
+      // Sphere rotation
       if (!this.isReduceMotion && this.pointsMesh) {
         const rotSpeed =
           this.currentState === 'PAUSED'
@@ -467,18 +545,17 @@ export class SphereRenderer {
         if (this.ringMesh) {
           this.ringMesh.rotation.z += rotSpeed * 0.4;
         }
+        if (this.orbitLinesGroup) {
+          this.orbitLinesGroup.rotation.y += rotSpeed * 0.3;
+        }
       }
 
-      // Smooth scale adjustment (sleep / wake)
+      // Smooth scale adjustment
       this.currentScale += (this.targetScale - this.currentScale) * Math.min(1.0, delta * 6.0);
       this.scene.scale.set(this.currentScale, this.currentScale, this.currentScale);
 
-      // Render via Bloom Composer or direct WebGL
-      if (this.composer && !this.isLowPower) {
-        this.composer.render();
-      } else {
-        this.renderer.render(this.scene, this.camera);
-      }
+      // Render directly with high performance
+      this.renderer.render(this.scene, this.camera);
     };
 
     this.animFrameId = requestAnimationFrame(render);
@@ -505,12 +582,6 @@ export class SphereRenderer {
     );
   }
 
-  /**
-   * Determines active audio spectrum based on state.
-   * LISTENING -> mic analyser
-   * SPEAKING -> play queue analyser
-   * IDLE / THINKING / PAUSED -> gentle synthetic wave
-   */
   private sampleAudioSpectrum(elapsed: number): void {
     let analyser: AnalyserNode | null = null;
 
@@ -537,7 +608,6 @@ export class SphereRenderer {
           this.smoothedSpectrum[r] * smoothing + val * (1 - smoothing);
       }
     } else {
-      // Synthetic calm harmonic wave
       for (let r = 0; r < rowCount; r++) {
         const normR = r / rowCount;
         let wave = 0;
@@ -557,7 +627,7 @@ export class SphereRenderer {
   }
 
   /**
-   * Animates dots according to current state, row frequency, and ripples.
+   * Animates dots according to current state, row frequency, and ripples in Milky Way palette.
    */
   private animateDots(elapsed: number): void {
     if (!this.pointsMesh) return;
@@ -565,9 +635,7 @@ export class SphereRenderer {
     const positions = this.positionsArray;
     const colors = this.colorsArray;
     const state = this.currentState;
-    const blend = this.stateTransitionProgress;
 
-    // Decay burst and wobble
     if (this.burstIntensity > 0.001) {
       this.burstIntensity *= 0.92;
     } else {
@@ -576,7 +644,6 @@ export class SphereRenderer {
 
     if (this.wobbleIntensity > 0.001) {
       this.wobbleIntensity *= 0.88;
-      // Head-tilt wobble on Z axis
       this.pointsMesh.rotation.z =
         Math.sin(elapsed * 25.0) * 0.12 * this.wobbleIntensity;
     } else {
@@ -584,7 +651,6 @@ export class SphereRenderer {
       this.pointsMesh.rotation.z = 0;
     }
 
-    // Breathing pulse for IDLE
     const breathOffset =
       state === 'IDLE' ? Math.sin(elapsed * 1.5) * 0.04 : 0.0;
 
@@ -593,9 +659,6 @@ export class SphereRenderer {
       const rowVal = this.smoothedSpectrum[dot.row] || 0;
       const basePos = dot.basePosition;
 
-      // Ripple propagation direction:
-      // LISTENING -> ripples move inward
-      // SPEAKING -> ripples move outward
       let ripple = 0;
       if (state === 'LISTENING') {
         ripple = Math.sin(dot.row * 0.4 + elapsed * 5.0) * 0.08 * rowVal;
@@ -605,7 +668,6 @@ export class SphereRenderer {
         ripple = Math.sin(dot.row * 0.3 - elapsed * 3.0) * 0.06;
       }
 
-      // In PAUSED state, rows flatten and slow down
       const pausedDamp = state === 'PAUSED' ? 0.35 : 1.0;
       const displacement =
         (rowVal * 0.55 + ripple + breathOffset + this.burstIntensity * 0.6) *
@@ -620,7 +682,6 @@ export class SphereRenderer {
       positions[pIdx + 1] = basePos.y + normY * displacement;
       positions[pIdx + 2] = basePos.z + normZ * displacement;
 
-      // Opacity calculation
       let targetAlpha =
         0.2 +
         0.8 * Math.pow(dot.latRatio, 0.7) +
@@ -628,27 +689,30 @@ export class SphereRenderer {
         this.burstIntensity * 0.5;
 
       if (state === 'PAUSED' || state === 'IDLE_CHECK') {
-        targetAlpha *= 0.45;
+        targetAlpha *= 0.4;
       } else if (state === 'SLEEP') {
         targetAlpha *= 0.1;
       }
 
-      // Apply transition blending
-      const currentAlpha = colors[pIdx];
-      const finalAlpha = THREE.MathUtils.lerp(currentAlpha, targetAlpha, blend);
+      // Base idle/speaking particle colors in Electric blue (#477FF5), Starlight (#A5C8FF), Aurora cyan (#62C9E8), with rare Golden star (#E5C18B)
+      let activeColor = dot.baseColor;
+      if (state === 'SPEAKING') {
+        activeColor = (i % 16 === 0) ? COLOR_GOLDEN_STAR : (i % 4 === 1) ? COLOR_AURORA_CYAN : (i % 4 === 2) ? COLOR_STARLIGHT : COLOR_ELECTRIC_BLUE;
+      } else if (state === 'THINKING') {
+        activeColor = (i % 8 === 0) ? COLOR_GOLDEN_STAR : COLOR_AURORA_CYAN;
+      } else if (state === 'LISTENING') {
+        activeColor = (i % 4 === 0) ? COLOR_AURORA_CYAN : (i % 4 === 1) ? COLOR_STARLIGHT : COLOR_ELECTRIC_BLUE;
+      }
 
-      colors[pIdx] = finalAlpha;
-      colors[pIdx + 1] = finalAlpha;
-      colors[pIdx + 2] = finalAlpha;
+      colors[pIdx] = activeColor.r * targetAlpha;
+      colors[pIdx + 1] = activeColor.g * targetAlpha;
+      colors[pIdx + 2] = activeColor.b * targetAlpha;
     }
 
     this.pointsMesh.geometry.attributes.position.needsUpdate = true;
     this.pointsMesh.geometry.attributes.color.needsUpdate = true;
   }
 
-  /**
-   * Animates thick outer ring with bumps following the spectrum.
-   */
   private animateOuterRing(elapsed: number): void {
     if (!this.ringMesh || !this.ringGeometry || !this.ringMaterial) return;
 
@@ -658,7 +722,6 @@ export class SphereRenderer {
     const thickness = CONFIG.sphere.ringThickness;
     const state = this.currentState;
 
-    // Bass pulse for SPEAKING
     const bass = (this.smoothedSpectrum[1] || 0) * 0.4;
     const pulse =
       state === 'SPEAKING'
@@ -672,7 +735,6 @@ export class SphereRenderer {
 
     for (let i = 0; i <= segments; i++) {
       const angle = (i / segments) * Math.PI * 2.0;
-      // Map angle symmetrically across rows
       const rowIdx = Math.floor(
         Math.abs(Math.sin(angle)) * (CONFIG.sphere.rowCount - 1)
       );
@@ -698,12 +760,11 @@ export class SphereRenderer {
 
     posAttr.needsUpdate = true;
 
-    // Opacity per state
-    let targetOpacity = 0.7;
+    let targetOpacity = 0.5;
     if (state === 'IDLE' || state === 'IDLE_CHECK') {
-      targetOpacity = 0.35;
+      targetOpacity = 0.25;
     } else if (state === 'PAUSED') {
-      targetOpacity = 0.2; // Main ring dims during pause
+      targetOpacity = 0.15;
     } else if (state === 'SLEEP') {
       targetOpacity = 0.05;
     }
@@ -715,10 +776,6 @@ export class SphereRenderer {
     );
   }
 
-  /**
-   * Animates the thin decision ring during PAUSED.
-   * Fills arc over 300-500 ms, then shows decision in green/red/amber.
-   */
   private animateDecisionRing(_elapsed: number): void {
     if (
       !this.decisionRingMesh ||
@@ -737,15 +794,13 @@ export class SphereRenderer {
       const fillDuration = CONFIG.sphere.decisionFillDurationMs;
       const fillRatio = Math.min(1.0, pauseDuration / fillDuration);
 
-      let targetColor = new THREE.Color(0xffffff);
+      let targetColor = COLOR_STARLIGHT;
       let targetOpacity = 0.85;
 
       if (this.currentDecision !== null) {
         const decisionAge = performance.now() - this.decisionTimestamp;
-        const hexColor = CONFIG.sphere.decisionRingColors[this.currentDecision];
-        targetColor = new THREE.Color(hexColor);
+        targetColor = THEME_DECISION_MAP[this.currentDecision] || COLOR_STARLIGHT;
 
-        // Flash and fade out after decision
         if (decisionAge > 800) {
           targetOpacity = Math.max(0.0, 1.0 - (decisionAge - 800) / 400);
         } else {
@@ -762,19 +817,27 @@ export class SphereRenderer {
         const pIdx = i * 3;
         posAttr.array[pIdx] = Math.cos(theta) * radius;
         posAttr.array[pIdx + 1] = Math.sin(theta) * radius;
-        posAttr.array[pIdx + 2] = 0.02; // Slightly forward in Z
+        posAttr.array[pIdx + 2] = 0.02;
       }
       posAttr.needsUpdate = true;
       this.decisionRingMesh.visible = true;
     } else {
-      this.decisionRingMaterial.opacity = 0.0;
-      this.decisionRingMesh.visible = false;
+      // Neutral thin starlight ring when idle
+      const arcMax = Math.PI * 2.0;
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * arcMax;
+        const pIdx = i * 3;
+        posAttr.array[pIdx] = Math.cos(theta) * radius;
+        posAttr.array[pIdx + 1] = Math.sin(theta) * radius;
+        posAttr.array[pIdx + 2] = 0.02;
+      }
+      posAttr.needsUpdate = true;
+      this.decisionRingMaterial.color.copy(COLOR_STARLIGHT);
+      this.decisionRingMaterial.opacity = 0.15;
+      this.decisionRingMesh.visible = true;
     }
   }
 
-  /**
-   * Animates orbiting dots in THINKING state.
-   */
   private animateOrbitingDots(elapsed: number): void {
     if (!this.orbitPointsMesh) return;
 
@@ -801,7 +864,7 @@ export class SphereRenderer {
       const angle = (i / this.orbitDotCount) * Math.PI * 2.0 + elapsed * 1.8;
       const pIdx = i * 3;
       posAttr.array[pIdx] = Math.cos(angle) * orbitRadius;
-      posAttr.array[pIdx + 1] = Math.sin(angle * 2.0) * 0.4; // Figure-8 tilt
+      posAttr.array[pIdx + 1] = Math.sin(angle * 2.0) * 0.4;
       posAttr.array[pIdx + 2] = Math.sin(angle) * orbitRadius;
     }
     posAttr.needsUpdate = true;
@@ -813,22 +876,20 @@ export class SphereRenderer {
 
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-
     this.renderer.setSize(width, height);
-    if (this.composer) {
-      this.composer.setSize(width, height);
-    }
   }
 
   public destroy(): void {
     if (this.animFrameId !== null) {
       cancelAnimationFrame(this.animFrameId);
     }
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     window.removeEventListener('resize', this.handleResize);
 
-    if (this.composer) {
-      this.composer.dispose();
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
     }
+
     this.renderer.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

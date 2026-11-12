@@ -1,49 +1,93 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
   <defs>
-    <radialGradient id="bgGlow" cx="600" cy="315" r="500" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#116466" stop-opacity="0.35" />
-      <stop offset="60%" stop-color="#0D1C19" stop-opacity="0.85" />
-      <stop offset="100%" stop-color="#070F0D" />
+    <radialGradient id="bgGlow" cx="600" cy="315" r="580" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#244DA8" stop-opacity="0.25" />
+      <stop offset="50%" stop-color="#050817" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#02030B" />
     </radialGradient>
-    <linearGradient id="peachGrad" x1="400" y1="200" x2="800" y2="350" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#D1E8E2" />
-      <stop offset="50%" stop-color="#FFCB9A" />
-      <stop offset="100%" stop-color="#D9B08C" />
+    <radialGradient id="coreGlow" cx="600" cy="270" r="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5C18B" stop-opacity="0.25" />
+      <stop offset="60%" stop-color="#244DA8" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#050817" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="420" y1="200" x2="780" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EAF0FF" />
+      <stop offset="45%" stop-color="#E5C18B" />
+      <stop offset="100%" stop-color="#956B50" />
+    </linearGradient>
+    <linearGradient id="waveGrad1" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#244DA8" stop-opacity="0" />
+      <stop offset="30%" stop-color="#244DA8" stop-opacity="0.5" />
+      <stop offset="50%" stop-color="#2FD3A5" stop-opacity="0.8" />
+      <stop offset="70%" stop-color="#62C9E8" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#244DA8" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="waveGrad2" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EAF0FF" stop-opacity="0" />
+      <stop offset="40%" stop-color="#EAF0FF" stop-opacity="0.3" />
+      <stop offset="60%" stop-color="#244DA8" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#EAF0FF" stop-opacity="0" />
     </linearGradient>
   </defs>
+
+  <!-- Deep space background -->
+  <rect width="1200" height="630" fill="#02030B" />
   <rect width="1200" height="630" fill="url(#bgGlow)" />
-  
+  <circle cx="600" cy="270" r="140" fill="url(#coreGlow)" />
+
+  <!-- Stars layer -->
+  <circle cx="120" cy="110" r="1.5" fill="#EAF0FF" opacity="0.8" />
+  <circle cx="280" cy="70" r="1" fill="#EAF0FF" opacity="0.6" />
+  <circle cx="430" cy="140" r="1.5" fill="#E5C18B" opacity="0.7" />
+  <circle cx="890" cy="95" r="1.5" fill="#EAF0FF" opacity="0.9" />
+  <circle cx="1060" cy="160" r="1" fill="#EAF0FF" opacity="0.5" />
+  <circle cx="1130" cy="80" r="1.5" fill="#E5C18B" opacity="0.6" />
+  <circle cx="90" cy="480" r="1.2" fill="#EAF0FF" opacity="0.7" />
+  <circle cx="210" cy="540" r="1" fill="#EAF0FF" opacity="0.5" />
+  <circle cx="1020" cy="510" r="1.5" fill="#EAF0FF" opacity="0.8" />
+  <circle cx="1140" cy="470" r="1.2" fill="#62C9E8" opacity="0.9" />
+
   <!-- Outer HUD boundary brackets -->
-  <path d="M 40 80 L 40 40 L 80 40" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
-  <path d="M 1160 80 L 1160 40 L 1120 40" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
-  <path d="M 40 550 L 40 590 L 80 590" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
-  <path d="M 1160 550 L 1160 590 L 1120 590" stroke="#D1E8E2" stroke-width="2" stroke-opacity="0.5" fill="none" />
+  <path d="M 40 80 L 40 40 L 80 40" stroke="#EAF0FF" stroke-width="2" stroke-opacity="0.5" fill="none" />
+  <path d="M 1160 80 L 1160 40 L 1120 40" stroke="#EAF0FF" stroke-width="2" stroke-opacity="0.5" fill="none" />
+  <path d="M 40 550 L 40 590 L 80 590" stroke="#EAF0FF" stroke-width="2" stroke-opacity="0.5" fill="none" />
+  <path d="M 1160 550 L 1160 590 L 1120 590" stroke="#EAF0FF" stroke-width="2" stroke-opacity="0.5" fill="none" />
 
   <!-- Concentric Rings & Geodesic accents -->
-  <circle cx="600" cy="315" r="260" stroke="#116466" stroke-width="1.5" stroke-dasharray="6 6" />
-  <circle cx="600" cy="315" r="190" stroke="#D1E8E2" stroke-opacity="0.2" stroke-width="1.5" />
-  <circle cx="600" cy="315" r="130" stroke="#FFCB9A" stroke-opacity="0.4" stroke-width="2" />
+  <circle cx="600" cy="270" r="240" stroke="#202D4D" stroke-width="1.5" stroke-dasharray="6 6" stroke-opacity="0.5" />
+  <circle cx="600" cy="270" r="175" stroke="#A5C8FF" stroke-opacity="0.25" stroke-width="1.5" />
+  <circle cx="600" cy="270" r="120" stroke="#E5C18B" stroke-opacity="0.4" stroke-width="2" />
   
-  <text x="600" y="210" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="300" font-size="20" fill="#D1E8E2" letter-spacing="0.4em">
+  <!-- Geodesic wireframe diamond accent -->
+  <polygon points="600,165 675,270 600,375 525,270" stroke="#EAF0FF" stroke-opacity="0.3" stroke-width="1.2" fill="none" />
+  <line x1="600" y1="165" x2="600" y2="375" stroke="#244DA8" stroke-opacity="0.4" stroke-width="1" />
+  <line x1="525" y1="270" x2="675" y2="270" stroke="#244DA8" stroke-opacity="0.4" stroke-width="1" />
+
+  <!-- Flowing Audio Waves across the horizon -->
+  <path d="M 0 420 Q 150 380 300 420 T 600 420 T 900 420 T 1200 420" fill="none" stroke="url(#waveGrad1)" stroke-width="2.5" />
+  <path d="M 0 425 Q 180 445 360 425 T 720 425 T 1080 425 T 1200 425" fill="none" stroke="url(#waveGrad2)" stroke-width="1.5" />
+
+  <!-- Brand Typography -->
+  <text x="600" y="195" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="300" font-size="18" fill="#EAF0FF" letter-spacing="0.45em">
     PRESENTATION DECK
   </text>
-  <text x="600" y="275" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="700" font-size="64" fill="url(#peachGrad)" letter-spacing="0.25em">
+  <text x="600" y="275" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="700" font-size="70" fill="url(#goldGrad)" letter-spacing="0.28em">
     SUNAI
   </text>
-  <text x="600" y="340" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="400" font-size="28" fill="#D1E8E2" letter-spacing="0.1em">
+  <text x="600" y="340" text-anchor="middle" font-family="'Raleway', sans-serif" font-weight="400" font-size="26" fill="#EAF0FF" letter-spacing="0.12em">
     PAUSE FIRST, DECIDE SECOND.
   </text>
-  <text x="600" y="390" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="400" font-size="18" fill="#A3C8BF" letter-spacing="0.02em">
+  <text x="600" y="380" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="400" font-size="17" fill="#A1AFCE" letter-spacing="0.02em">
     Timing-First Voice AI Running Locally on a 16 GB Laptop
   </text>
-  
-  <!-- Decision Dots -->
-  <circle cx="510" cy="460" r="7" fill="#2FD3A5" />
-  <text x="528" y="466" font-family="'Inter', sans-serif" font-size="15" fill="#D1E8E2">Resume</text>
-  
-  <circle cx="630" cy="460" r="7" fill="#FF6A5C" />
-  <text x="648" y="466" font-family="'Inter', sans-serif" font-size="15" fill="#D1E8E2">Stop &amp; Listen</text>
 
-  <circle cx="770" cy="460" r="7" fill="#FFCB9A" />
-  <text x="788" y="466" font-family="'Inter', sans-serif" font-size="15" fill="#D1E8E2">Clarify</text>
+  <!-- Decision Legend Cluster -->
+  <circle cx="480" cy="500" r="6" fill="#2FD3A5" />
+  <text x="496" y="505" font-family="'Inter', sans-serif" font-size="14" fill="#EAF0FF" font-weight="500">Resume</text>
+
+  <circle cx="610" cy="500" r="6" fill="#FF6A5C" />
+  <text x="626" y="505" font-family="'Inter', sans-serif" font-size="14" fill="#EAF0FF" font-weight="500">Stop &amp; Listen</text>
+
+  <circle cx="760" cy="500" r="6" fill="#FFD166" />
+  <text x="776" y="505" font-family="'Inter', sans-serif" font-size="14" fill="#EAF0FF" font-weight="500">Clarify</text>
 </svg>

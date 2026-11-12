@@ -87,6 +87,19 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 /**
+ * Resolve the WebSocket URL from the current page's origin and protocol.
+ * Falls back to 127.0.0.1:8000 when running in SSR/testing environments.
+ */
+export function getDefaultWebSocketUrl(): string {
+  if (typeof window !== 'undefined' && window.location) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname || '127.0.0.1';
+    return `${protocol}//${host}:8000/ws`;
+  }
+  return 'ws://127.0.0.1:8000/ws';
+}
+
+/**
  * SunaiWebSocketClient
  * Manages WebSocket connection to Sunai Backend.
  * Sends binary mic audio and receives state transitions, live captions, and TTS audio.
@@ -95,6 +108,10 @@ export class SunaiWebSocketClient {
   private ws: WebSocket | null = null;
   private url: string;
   private isConnected = false;
+  private reconnectTimer: number | null = null;
+  private reconnectDelay = 1000;
+  private readonly maxReconnectDelay = 5000;
+  private isDisposed = false;
 
   public onStateChange: StateChangeCallback | null = null;
   public onPartialText: TextCallback | null = null;
@@ -109,11 +126,19 @@ export class SunaiWebSocketClient {
   public onMetrics: MetricsCallback | null = null;
   public onConnectionChange: ConnectionCallback | null = null;
 
-  constructor(url = 'ws://localhost:8000/ws') {
-    this.url = url;
+  constructor(url?: string) {
+    this.url = url || getDefaultWebSocketUrl();
   }
 
   public connect(): void {
+    // Clear disposed state when connect is explicitly called (e.g. on React mount / remount)
+    this.isDisposed = false;
+
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
       return;
     }
@@ -124,6 +149,7 @@ export class SunaiWebSocketClient {
 
       this.ws.onopen = () => {
         this.isConnected = true;
+        this.reconnectDelay = 1000;
         if (this.onConnectionChange) this.onConnectionChange(true);
       };
 
@@ -141,14 +167,34 @@ export class SunaiWebSocketClient {
       this.ws.onclose = () => {
         this.isConnected = false;
         if (this.onConnectionChange) this.onConnectionChange(false);
+        this.scheduleReconnect();
       };
 
       this.ws.onerror = (err) => {
         console.error('[WS Client] Error:', err);
+        this.isConnected = false;
+        if (this.onConnectionChange) this.onConnectionChange(false);
       };
     } catch (e) {
       console.error('[WS Client] Failed to connect:', e);
+      this.isConnected = false;
+      if (this.onConnectionChange) this.onConnectionChange(false);
+      this.scheduleReconnect();
     }
+  }
+
+  private scheduleReconnect(): void {
+    if (this.isDisposed) return;
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+    }
+    this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null;
+      if (!this.isDisposed) {
+        this.connect();
+      }
+    }, this.reconnectDelay);
+    this.reconnectDelay = Math.min(this.maxReconnectDelay, Math.round(this.reconnectDelay * 1.5));
   }
 
   private handleMessage(msg: ServerMessage): void {
@@ -286,15 +332,23 @@ export class SunaiWebSocketClient {
   }
 
   public disconnect(): void {
+    this.isDisposed = true;
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.ws) {
+      this.ws.onclose = null;
+      this.ws.onerror = null;
       this.ws.close();
       this.ws = null;
     }
     this.isConnected = false;
+    if (this.onConnectionChange) this.onConnectionChange(false);
   }
 
   public getIsConnected(): boolean {
-    return this.isConnected;
+    return this.isConnected && this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
 }
 

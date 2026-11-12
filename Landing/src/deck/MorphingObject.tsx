@@ -119,7 +119,7 @@ export function MorphingObject({
     }
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
     const particleMat = new THREE.PointsMaterial({
-      color: 0xD1E8E2,
+      color: 0xA5C8FF,
       size: 1.5,
       transparent: true,
       opacity: 0.35,
@@ -261,8 +261,8 @@ export function MorphingObject({
       aria-hidden="true"
     >
       {/* Lightweight background atmosphere with reduced blur radius */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[#116466]/12 blur-[40px] pointer-events-none -z-10" />
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-[#FFCB9A]/5 blur-[30px] pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[#244DA8]/12 blur-[40px] pointer-events-none -z-10" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-[#7655C9]/10 blur-[30px] pointer-events-none -z-10" />
     </div>
   );
 }

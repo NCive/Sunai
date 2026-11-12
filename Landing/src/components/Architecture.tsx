@@ -11,7 +11,7 @@ export function Architecture({ reducedMotion }: ArchitectureProps) {
   const [activeNode, setActiveNode] = useState<ArchNode>(content.architecture.nodes[2]); // Default: Backend Turn Manager
 
   return (
-    <section id="architecture" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#07080c]">
+    <section id="architecture" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#02030B]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -28,7 +28,7 @@ export function Architecture({ reducedMotion }: ArchitectureProps) {
         </div>
 
         {/* Interactive Architecture Flow Canvas */}
-        <div className="p-6 sm:p-10 rounded-3xl glass-card border border-white/10 bg-[#090b14] mb-8">
+        <div className="p-6 sm:p-10 rounded-3xl glass-card border border-white/10 bg-[#0A1024] mb-8">
           
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
             <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
@@ -108,9 +108,9 @@ export function Architecture({ reducedMotion }: ArchitectureProps) {
 
               {/* Waypoint Markers */}
               <circle cx="120" cy="30" r="5" fill="#2FD3A5" />
-              <circle cx="370" cy="30" r="5" fill="#818cf8" />
-              <circle cx="620" cy="30" r="5" fill="#c084fc" />
-              <circle cx="870" cy="30" r="5" fill="#10b981" />
+              <circle cx="370" cy="30" r="5" fill="#244DA8" />
+              <circle cx="620" cy="30" r="5" fill="#244DA8" />
+              <circle cx="870" cy="30" r="5" fill="#2FD3A5" />
             </svg>
           </div>
 

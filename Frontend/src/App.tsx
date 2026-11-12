@@ -16,6 +16,7 @@ import {
   AppLayout,
   RightSidebar,
 } from './ui';
+import { SunaiRingIcon } from './ui/Icons';
 
 export const App: React.FC = () => {
   const [sphereState, setSphereState] = useState<SphereState>('IDLE');
@@ -32,7 +33,6 @@ export const App: React.FC = () => {
 
   // Captions and bot sentences tracking
   const [userText, setUserText] = useState<string>('');
-  const [detectedLanguage, setDetectedLanguage] = useState<string>('hi-IN');
   const [botSentences, setBotSentences] = useState<SentenceItem[]>([]);
   const [heardUpto, setHeardUpto] = useState<number>(0);
   const [isInterrupted, setIsInterrupted] = useState<boolean>(false);
@@ -123,14 +123,12 @@ export const App: React.FC = () => {
       }
     };
 
-    ws.onPartialText = (text, lang) => {
+    ws.onPartialText = (text) => {
       setUserText(text);
-      if (lang) setDetectedLanguage(lang);
     };
 
-    ws.onFinalText = (text, lang) => {
+    ws.onFinalText = (text) => {
       setUserText(text);
-      if (lang) setDetectedLanguage(lang);
     };
 
     ws.onTtsAudio = (sentenceId, audioBuffer, replyText, turnId, kind) => {
@@ -320,11 +318,6 @@ export const App: React.FC = () => {
     }
   }, [isMicOn, sphereState]);
 
-  const handleLanguageChange = (lang: string) => {
-    setDetectedLanguage(lang);
-    wsClientRef.current?.sendLanguageOverride(lang);
-  };
-
   // Audio PlayQueue test helpers
   const handleEnqueueSentence = (id: number, duration: number, freq: number) => {
     if (!playQueueRef.current) return;
@@ -393,17 +386,29 @@ export const App: React.FC = () => {
     <AppLayout
       background={<BackgroundParticles lowPower={lowPower} reduceMotion={reduceMotion} />}
       headerLeft={
-        <div className="app-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.04em' }}>SUNAI</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <SunaiRingIcon size={20} color="var(--space-gold)" />
           <span
             style={{
-              fontSize: '0.72rem',
-              color: '#38bdf8',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              padding: '2px 8px',
-              borderRadius: '9999px',
-              fontWeight: 600,
+              fontFamily: 'var(--font-hud)',
+              fontSize: '1.15rem',
+              fontWeight: 300,
+              letterSpacing: '0.35em',
+              color: 'var(--space-star)',
+              textTransform: 'uppercase',
+            }}
+          >
+            SUNAI
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-hud)',
+              fontSize: '0.64rem',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--space-star-70)',
+              borderLeft: '1px solid var(--space-blue-70)',
+              paddingLeft: '10px',
             }}
           >
             Pause-First Voice Assistant
@@ -412,16 +417,89 @@ export const App: React.FC = () => {
       }
       headerRight={
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span className="badge fps">{fps} FPS</span>
-          <span className={`badge state ${sphereState.toLowerCase()}`}>{sphereState}</span>
           <span
-            className="badge"
+            className="status-pill fps tabular-nums"
+            title={`Rendering performance: ${fps} frames per second`}
+          >
+            <span className="dot" style={{ background: 'var(--space-gold)' }} />
+            {fps} FPS
+          </span>
+          <span
+            className={`status-pill state ${sphereState.toLowerCase()}`}
+            title={`Assistant state: ${sphereState}`}
             style={{
-              color: isWsConnected ? '#4ade80' : '#f87171',
-              borderColor: isWsConnected ? 'rgba(74, 222, 128, 0.4)' : 'rgba(248, 113, 113, 0.4)',
+              background:
+                sphereState === 'THINKING' || sphereState === 'SPEAKING'
+                  ? 'var(--space-navy-90)'
+                  : sphereState === 'PAUSED'
+                  ? 'var(--decision-amber-bg)'
+                  : sphereState === 'LISTENING'
+                  ? 'var(--space-blue-20)'
+                  : 'var(--space-navy-90)',
+              borderColor:
+                sphereState === 'THINKING' || sphereState === 'SPEAKING'
+                  ? 'var(--space-gold)'
+                  : sphereState === 'PAUSED'
+                  ? 'var(--decision-amber-border)'
+                  : sphereState === 'LISTENING'
+                  ? 'var(--space-blue)'
+                  : 'var(--space-blue-70)',
+              color:
+                sphereState === 'THINKING' || sphereState === 'SPEAKING'
+                  ? 'var(--space-gold)'
+                  : sphereState === 'PAUSED'
+                  ? 'var(--decision-amber)'
+                  : 'var(--space-star)',
+              boxShadow:
+                sphereState === 'THINKING' || sphereState === 'SPEAKING'
+                  ? '0 0 12px var(--space-gold-glow)'
+                  : sphereState === 'LISTENING'
+                  ? '0 0 10px rgba(42, 79, 154, 0.45)'
+                  : 'none',
             }}
           >
-            {isWsConnected ? '● WS Connected' : '○ WS Offline'}
+            <span
+              className="dot"
+              style={{
+                background:
+                  sphereState === 'PAUSED'
+                    ? 'var(--decision-amber)'
+                    : sphereState === 'THINKING' || sphereState === 'SPEAKING'
+                    ? 'var(--space-gold)'
+                    : sphereState === 'LISTENING'
+                    ? 'var(--space-star)'
+                    : 'var(--space-star-50)',
+                boxShadow:
+                  sphereState === 'LISTENING'
+                    ? '0 0 6px var(--space-blue)'
+                    : sphereState === 'THINKING' || sphereState === 'SPEAKING'
+                    ? '0 0 6px var(--space-gold)'
+                    : 'none',
+              }}
+            />
+            {sphereState}
+          </span>
+          <span
+            className="status-pill"
+            title={`WebSocket: ${isWsConnected ? 'Connected (Live)' : 'Offline'}`}
+            style={{
+              borderColor: isWsConnected
+                ? 'var(--decision-green-border)'
+                : 'var(--decision-red-border)',
+            }}
+          >
+            <span
+              className="dot"
+              style={{
+                background: isWsConnected
+                  ? 'var(--decision-green)'
+                  : 'var(--decision-red)',
+                boxShadow: isWsConnected
+                  ? '0 0 6px var(--decision-green)'
+                  : '0 0 6px var(--decision-red)',
+              }}
+            />
+            {isWsConnected ? 'WS Connected' : 'WS Offline'}
           </span>
         </div>
       }
@@ -476,8 +554,6 @@ export const App: React.FC = () => {
           micEnergy={micEnergy}
           isSpeakingVad={isSpeakingVad}
           micChunksCount={micChunksCount}
-          detectedLanguage={detectedLanguage}
-          onLanguageChange={handleLanguageChange}
           sources={activeSources}
           isRefused={isRefused}
           stubDecision={stubDecision}

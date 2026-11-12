@@ -17,48 +17,48 @@ export function Slide07Languages() {
           return (
             <div
               key={lang.code}
-              className="p-4 rounded-sm deck-card border border-[#116466]/40 flex flex-col justify-between"
+              className="p-4 rounded-sm deck-card border border-[#202D4D] flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <span className="text-[10px] font-mono text-[#A3C8BF]/60 block uppercase">Language</span>
+                    <span className="text-[10px] font-mono text-[#647394] block uppercase">Language</span>
                     <h3
-                      className={`text-lg font-bold text-[#D1E8E2] ${
+                      className={`text-lg font-bold text-[#EAF0FF] ${
                         isDevanagari ? 'font-devanagari' : 'font-heading tracking-wider uppercase'
                       }`}
                     >
                       {lang.nativeName}
-                      <span className="text-xs font-normal text-[#A3C8BF] ml-2 font-heading">
+                      <span className="text-xs font-normal text-[#A1AFCE] ml-2 font-heading">
                         ({lang.name})
                       </span>
                     </h3>
                   </div>
-                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#FFCB9A]/10 border border-[#FFCB9A]/30 text-[#FFCB9A]">
+                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#E5C18B]/10 border border-[#E5C18B]/30 text-[#E5C18B]">
                     {lang.code}
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded bg-[#070F0D] border border-[#116466]/40 mb-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#A3C8BF]/70 mb-1">
-                    <MessageSquareText className="w-3 h-3 text-[#FFCB9A]" />
+                <div className="p-2.5 rounded bg-[#050817] border border-[#202D4D] mb-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-[#A1AFCE] mb-1">
+                    <MessageSquareText className="w-3 h-3 text-[#E5C18B]" />
                     <span>Spoken Query Example</span>
                   </div>
-                  <p className={`text-xs text-[#D1E8E2] ${isDevanagari ? 'font-devanagari' : 'font-mono'}`}>
+                  <p className={`text-xs text-[#EAF0FF] ${isDevanagari ? 'font-devanagari' : 'font-mono'}`}>
                     "{lang.sampleQuestion}"
                   </p>
                 </div>
 
-                <p className="text-[11px] text-[#A3C8BF] font-mono">
+                <p className="text-[11px] text-[#A1AFCE] font-mono">
                   Context: {lang.translation}
                 </p>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-[#116466]/30 flex flex-wrap gap-1.5">
+              <div className="mt-3 pt-2 border-t border-[#202D4D] flex flex-wrap gap-1.5">
                 {lang.greetings.map((greet, gIdx) => (
                   <span
                     key={gIdx}
-                    className={`text-[10px] px-2 py-0.5 rounded-full bg-[#116466]/20 border border-[#116466]/40 text-[#D1E8E2] ${
+                    className={`text-[10px] px-2 py-0.5 rounded-full bg-[#111B35] border border-[#202D4D] text-[#EAF0FF] ${
                       isDevanagari ? 'font-devanagari' : 'font-sans'
                     }`}
                   >
@@ -73,4 +73,3 @@ export function Slide07Languages() {
     </SlideFrame>
   );
 }
-

@@ -7,3 +7,4 @@ export * from './BackgroundParticles';
 export * from './SidebarCard';
 export * from './RightSidebar';
 export * from './AppLayout';
+export * from './Icons';

@@ -7,27 +7,34 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#070F0D",
-        charcoal: "#2C3531",
-        teal: {
-          DEFAULT: "#116466",
-          dark: "#0C3C3D",
-          light: "#188082",
-        },
-        tan: "#D9B08C",
-        peach: "#FFCB9A",
-        mint: {
-          DEFAULT: "#D1E8E2",
-          dim: "#A3C8BF",
+        space: {
+          void: "#02030B",
+          black: "#02030B",
+          deep: "#050817",
+          navy: "#050817",
+          surface: "#0A1024",
+          elevated: "#111B35",
+          border: "#202D4D",
+          blue: "#477FF5",
+          cosmic: "#244DA8",
+          violet: "#7655C9",
+          cyan: "#62C9E8",
+          starlight: "#A5C8FF",
+          bronze: "#956B50",
+          brown: "#956B50",
+          gold: "#E5C18B",
+          star: "#EAF0FF",
+          secondary: "#A1AFCE",
+          muted: "#647394",
         },
         decision: {
           green: "#2FD3A5",
           red: "#FF6A5C",
-          amber: "#FFCB9A",
+          amber: "#FFD166",
         },
       },
       fontFamily: {
-        heading: ["'Raleway'", "'Space Grotesk'", "sans-serif"],
+        heading: ["'Raleway'", "sans-serif"],
         body: ["'Inter'", "sans-serif"],
         devanagari: ["'Noto Sans Devanagari'", "sans-serif"],
       },

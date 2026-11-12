@@ -34,16 +34,16 @@ export function OverviewModal({
       aria-modal="true"
       aria-labelledby="overview-modal-title"
     >
-      {/* Dark Teal Backdrop */}
+      {/* Deep Space Backdrop */}
       <div
-        className="fixed inset-0 bg-[#070F0D]/90 backdrop-blur-md"
+        className="fixed inset-0 bg-[#02030B]/90 backdrop-blur-md"
         onClick={onClose}
       />
 
       {/* Modal Dialog Shell */}
-      <div className="relative z-10 w-full max-w-6xl max-h-[90vh] flex flex-col rounded-sm deck-card border border-[#116466] p-6 shadow-2xl bg-[#070F0D]/95 overflow-hidden">
+      <div className="relative z-10 w-full max-w-6xl max-h-[90vh] flex flex-col rounded-sm deck-card border border-[#202D4D] p-6 shadow-2xl bg-[#0A1024]/95 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#116466]/40 mb-6 flex-shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-[#202D4D] mb-6 flex-shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-3 h-[1px] bg-[#2FD3A5]" />
@@ -51,14 +51,14 @@ export function OverviewModal({
                 DECK SLIDE SORTER
               </span>
             </div>
-            <h3 id="overview-modal-title" className="text-lg sm:text-xl font-heading font-light tracking-deck-wide text-[#D1E8E2] uppercase">
+            <h3 id="overview-modal-title" className="text-lg sm:text-xl font-heading font-light tracking-deck-wide text-[#EAF0FF] uppercase">
               Presentation Overview (16 Slides)
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-[#A3C8BF] hover:text-[#FFCB9A] rounded-sm hover:bg-[#116466]/20 transition-colors"
+            className="p-1.5 text-[#A1AFCE] hover:text-[#62C9E8] rounded-sm hover:bg-[#111B35] transition-colors"
             aria-label="Close overview"
           >
             <X className="w-5 h-5" />
@@ -80,28 +80,28 @@ export function OverviewModal({
                 }}
                 className={`p-3 rounded-sm text-left transition-all border flex flex-col justify-between group aspect-[16/10] ${
                   isCurrent
-                    ? 'border-[#FFCB9A] bg-[#FFCB9A]/10 shadow-[0_0_15px_rgba(255,203,154,0.2)]'
-                    : 'border-[#116466]/40 bg-[#0D1C19]/60 hover:border-[#D1E8E2] hover:bg-[#116466]/20'
+                    ? 'border-[#62C9E8] bg-[#111B35] shadow-[0_0_15px_rgba(71,127,245,0.3)]'
+                    : 'border-[#202D4D] bg-[#0A1024]/60 hover:border-[#244DA8] hover:bg-[#111B35]'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-mono text-[#FFCB9A] font-bold">
+                    <span className="text-[10px] font-mono text-[#62C9E8] font-bold">
                       {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
                     </span>
-                    <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-black/40 text-[#A3C8BF]">
+                    <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-black/40 text-[#A1AFCE]">
                       {slide.transition}
                     </span>
                   </div>
 
-                  <h4 className="text-xs font-heading tracking-wide uppercase text-[#D1E8E2] group-hover:text-white line-clamp-2">
+                  <h4 className="text-xs font-heading tracking-wide uppercase text-[#EAF0FF] group-hover:text-white line-clamp-2">
                     {slide.title}
                   </h4>
                 </div>
 
-                <div className="pt-2 border-t border-[#116466]/30 flex items-center justify-between text-[9px] font-mono text-[#A3C8BF]/60">
+                <div className="pt-2 border-t border-[#202D4D] flex items-center justify-between text-[9px] font-mono text-[#A1AFCE]">
                   <span>{slide.sectionLabel.split('/')[1]?.trim() || slide.id}</span>
-                  <ArrowRight className="w-3 h-3 text-[#FFCB9A] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="w-3 h-3 text-[#62C9E8] opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </button>
             );
@@ -109,7 +109,7 @@ export function OverviewModal({
         </div>
 
         {/* Footer Note */}
-        <div className="pt-4 mt-4 border-t border-[#116466]/40 flex items-center justify-between text-[11px] font-mono text-[#A3C8BF]/60 flex-shrink-0">
+        <div className="pt-4 mt-4 border-t border-[#202D4D] flex items-center justify-between text-[11px] font-mono text-[#647394] flex-shrink-0">
           <span>Click any card to jump immediately &bull; Press ESC to close</span>
           <span>Keyboard: Left / Right &bull; O to toggle</span>
         </div>
@@ -117,4 +117,3 @@ export function OverviewModal({
     </div>
   );
 }
-

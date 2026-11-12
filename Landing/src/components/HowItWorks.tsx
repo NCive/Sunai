@@ -27,7 +27,7 @@ export function HowItWorks({ reducedMotion }: HowItWorksProps) {
   ];
 
   return (
-    <section id="how-it-works" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#06070a]">
+    <section id="how-it-works" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#02030B]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -94,7 +94,7 @@ export function HowItWorks({ reducedMotion }: HowItWorksProps) {
 
           {/* Step Interactive Visualizer (5 cols) */}
           <div className="lg:col-span-5">
-            <div className="p-8 rounded-2xl glass-card border border-white/10 flex flex-col items-center justify-center min-h-[380px] relative bg-[#090b12]">
+            <div className="p-8 rounded-2xl glass-card border border-white/10 flex flex-col items-center justify-center min-h-[380px] relative bg-[#0A1024]">
               <div className="relative w-56 h-56 flex items-center justify-center mb-6">
                 
                 {/* Thin Animated Decision Ring */}
@@ -114,12 +114,12 @@ export function HowItWorks({ reducedMotion }: HowItWorksProps) {
                     fill="none"
                     stroke={
                       activeStep === 0
-                        ? '#f59e0b'
+                        ? '#FFD166'
                         : activeStep === 1
                         ? '#2FD3A5'
                         : activeStep === 2
-                        ? '#c084fc'
-                        : '#10b981'
+                        ? '#244DA8'
+                        : '#2FD3A5'
                     }
                     strokeWidth="4"
                     strokeDasharray="276.46"

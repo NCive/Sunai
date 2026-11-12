@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { SphereState, DecisionType } from '../sphere/SphereRenderer';
 import { CONFIG } from '../config';
+import { ClockIcon, ChevronDownIcon, ChevronUpIcon } from './Icons';
 
 export interface TimelineBlock {
   id: string;
@@ -27,7 +28,6 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
   isUserSpeaking,
   activeDecision,
   reduceMotion = false,
-  lowPower = false,
   isCollapsed = false,
   onToggleCollapse,
 }) => {
@@ -102,67 +102,55 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
     }
   }, [currentState, isUserSpeaking]);
 
-  // Update live block duration periodically
+  // Associate decision with active pause gap
   useEffect(() => {
-    if (lowPower) return; // Reduce render frequency in low-power mode
+    if (activeDecision && activeBlockRef.current && activeBlockRef.current.lane === 'pause_gap') {
+      activeBlockRef.current.decision = activeDecision;
+      setBlocks((prev) => [...prev]);
+    }
+  }, [activeDecision]);
 
+  // Live timer for active block expansion
+  useEffect(() => {
+    if (reduceMotion) return;
     const interval = setInterval(() => {
       if (activeBlockRef.current && activeBlockRef.current.isLive) {
-        const elapsed = Date.now() - activeBlockRef.current.startTime;
-        activeBlockRef.current.durationMs = elapsed;
+        const now = Date.now();
+        activeBlockRef.current.durationMs = Math.max(200, now - activeBlockRef.current.startTime);
         setBlocks((prev) => [...prev]);
       }
     }, 100);
-
     return () => clearInterval(interval);
-  }, [lowPower]);
-
-  // If a decision arrives, attach it to active or latest block
-  useEffect(() => {
-    if (activeDecision && blocks.length > 0) {
-      setBlocks((prev) => {
-        const last = { ...prev[prev.length - 1], decision: activeDecision };
-        return [...prev.slice(0, -1), last];
-      });
-    }
-  }, [activeDecision]);
+  }, [reduceMotion]);
 
   const userBlocks = blocks.filter((b) => b.lane === 'user');
   const botBlocks = blocks.filter((b) => b.lane === 'bot' || b.lane === 'pause_gap');
 
-  // If collapsed: render compact taskbar strip
+  // Collapsed View (Slim Strip: 34px)
   if (isCollapsed) {
     return (
       <div
-        className="timeline-taskbar collapsed"
+        className="sunai-timeline-collapsed"
         style={{
           width: '100%',
           height: `${CONFIG.layout.timelineCollapsedHeightPx}px`,
-          background: 'rgba(10, 15, 30, 0.95)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--space-navy-95)',
+          borderTop: '1px solid var(--space-blue-70)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 16px',
           boxSizing: 'border-box',
-          backdropFilter: 'blur(12px)',
           zIndex: 10,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.04em' }}>
-            ⏱️ CONVERSATION TIMELINE
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ClockIcon size={14} color="var(--space-gold)" />
+          <span style={{ fontSize: '0.72rem', fontWeight: 600, fontFamily: 'var(--font-hud)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--space-star)' }}>
+            Timeline
           </span>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              color: '#64748b',
-              background: 'rgba(255, 255, 255, 0.05)',
-              padding: '1px 6px',
-              borderRadius: '4px',
-            }}
-          >
-            {blocks.length} events
+          <span style={{ fontSize: '0.68rem', color: 'var(--space-star-70)' }}>
+            ({blocks.length} events logged)
           </span>
         </div>
 
@@ -172,68 +160,69 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#38bdf8',
-              fontSize: '0.74rem',
-              fontWeight: 600,
+              color: 'var(--space-star-70)',
+              fontSize: '0.68rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              padding: '4px 8px',
-              borderRadius: '6px',
+              padding: '2px 6px',
             }}
-            title="Expand conversation timeline"
           >
-            ▲ Expand Timeline
+            <ChevronUpIcon size={12} />
+            <span>Expand</span>
           </button>
         )}
       </div>
     );
   }
 
-  // Expanded taskbar style (~120px)
+  // Expanded View (Full Two-Lane Taskbar: 120px)
   return (
     <div
-      className="timeline-taskbar expanded"
+      className="sunai-timeline-expanded"
       style={{
         width: '100%',
         height: `${CONFIG.layout.timelineHeightPx}px`,
-        background: 'rgba(10, 15, 30, 0.95)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'var(--space-navy-95)',
+        borderTop: '1px solid var(--space-blue-70)',
         display: 'flex',
         alignItems: 'center',
-        padding: '10px 16px',
+        padding: '8px 16px',
         boxSizing: 'border-box',
-        backdropFilter: 'blur(12px)',
-        gap: '16px',
+        gap: '14px',
         zIndex: 10,
       }}
     >
       {/* Left Column: Title & Controls */}
       <div
         style={{
-          width: '160px',
-          minWidth: '140px',
+          width: '150px',
+          minWidth: '130px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           gap: '4px',
-          borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRight: '1px solid var(--space-blue-40)',
           paddingRight: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span
-            style={{
-              fontSize: '0.76rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              color: '#e2e8f0',
-            }}
-          >
-            ⏱️ Timeline
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ClockIcon size={14} color="var(--space-gold)" />
+            <span
+              style={{
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                fontFamily: 'var(--font-hud)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--space-star)',
+              }}
+            >
+              Timeline
+            </span>
+          </div>
 
           {onToggleCollapse && (
             <button
@@ -241,20 +230,23 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
-                fontSize: '0.7rem',
+                color: 'var(--space-star-70)',
+                fontSize: '0.66rem',
                 cursor: 'pointer',
                 padding: '2px 4px',
-                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
               }}
               title="Collapse timeline to thin strip"
             >
-              ▼ Hide
+              <ChevronDownIcon size={12} />
+              <span>Hide</span>
             </button>
           )}
         </div>
-        <span style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: 1.2 }}>
-          Instant pause & backchannel timing
+        <span style={{ fontSize: '0.66rem', color: 'var(--space-star-50)', lineHeight: 1.25 }}>
+          Instant pause & backchannel classification
         </span>
       </div>
 
@@ -264,20 +256,21 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: '8px',
+          gap: '6px',
           minWidth: 0,
           justifyContent: 'center',
         }}
       >
-        {/* Lane 1: User Lane (~28px) */}
+        {/* Lane 1: User Lane */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <span
             style={{
-              width: '36px',
-              fontSize: '0.72rem',
+              width: '38px',
+              fontSize: '0.70rem',
               fontWeight: 700,
-              color: '#38bdf8',
-              letterSpacing: '0.02em',
+              fontFamily: 'var(--font-hud)',
+              color: 'var(--space-star)',
+              letterSpacing: '0.04em',
             }}
           >
             User
@@ -285,9 +278,10 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
           <div
             style={{
               flex: 1,
-              height: '26px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              borderRadius: '6px',
+              height: '24px',
+              background: 'var(--space-black)',
+              border: '1px dashed var(--space-blue-40)',
+              borderRadius: '4px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
@@ -297,34 +291,37 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
             }}
           >
             {userBlocks.length === 0 ? (
-              <span style={{ fontSize: '0.68rem', color: '#475569', fontStyle: 'italic' }}>
-                Awaiting user speech...
+              <span style={{ fontSize: '0.66rem', color: 'var(--space-star-50)', fontStyle: 'italic' }}>
+                Awaiting user voice input...
               </span>
             ) : (
               userBlocks.map((b) => {
-                const widthPx = Math.min(220, Math.max(40, Math.round(b.durationMs / 25)));
+                const widthPx = Math.min(220, Math.max(48, Math.round(b.durationMs / 25)));
                 return (
                   <div
                     key={b.id}
+                    className="tabular-nums"
                     style={{
-                      height: '20px',
+                      height: '18px',
                       width: `${widthPx}px`,
-                      minWidth: '40px',
+                      minWidth: '48px',
                       flexShrink: 0,
-                      background: 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)',
-                      borderRadius: '4px',
+                      background: 'var(--space-star)',
+                      color: 'var(--space-black)',
+                      border: '1px solid var(--space-blue)',
+                      borderRadius: '3px',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       padding: '0 6px',
-                      color: '#ffffff',
-                      fontSize: '0.66rem',
-                      fontWeight: 600,
+                      fontSize: '0.64rem',
+                      fontWeight: 700,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      boxShadow: b.isLive ? '0 0 10px rgba(56, 189, 248, 0.5)' : 'none',
+                      boxShadow: b.isLive ? '0 0 10px rgba(71, 127, 245, 0.5)' : 'none',
                     }}
                   >
-                    {b.durationMs}ms
+                    {b.durationMs} ms
                   </div>
                 );
               })
@@ -332,15 +329,16 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
           </div>
         </div>
 
-        {/* Lane 2: Bot Lane (~28px, Speech + Pause Gap) */}
+        {/* Lane 2: Bot Lane (Audio & Pause Gap) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <span
             style={{
-              width: '36px',
-              fontSize: '0.72rem',
+              width: '38px',
+              fontSize: '0.70rem',
               fontWeight: 700,
-              color: '#10b981',
-              letterSpacing: '0.02em',
+              fontFamily: 'var(--font-hud)',
+              color: 'var(--space-gold)',
+              letterSpacing: '0.04em',
             }}
           >
             Bot
@@ -348,9 +346,10 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
           <div
             style={{
               flex: 1,
-              height: '26px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              borderRadius: '6px',
+              height: '24px',
+              background: 'var(--space-black)',
+              border: '1px dashed var(--space-blue-40)',
+              borderRadius: '4px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
@@ -360,70 +359,67 @@ export const ConversationTimeline: React.FC<ConversationTimelineProps> = ({
             }}
           >
             {botBlocks.length === 0 ? (
-              <span style={{ fontSize: '0.68rem', color: '#475569', fontStyle: 'italic' }}>
-                Awaiting assistant speech...
+              <span style={{ fontSize: '0.66rem', color: 'var(--space-star-50)', fontStyle: 'italic' }}>
+                Awaiting assistant synthesized audio...
               </span>
             ) : (
               botBlocks.map((b) => {
-                const widthPx = Math.min(240, Math.max(40, Math.round(b.durationMs / 25)));
-
-                if (b.lane === 'pause_gap') {
-                  return (
-                    <div
-                      key={b.id}
-                      style={{
-                        height: '20px',
-                        width: `${Math.max(70, widthPx)}px`,
-                        minWidth: '70px',
-                        flexShrink: 0,
-                        background:
-                          'repeating-linear-gradient(45deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.25) 4px, rgba(245, 158, 11, 0.5) 4px, rgba(245, 158, 11, 0.5) 8px)',
-                        border: '1px dashed #f59e0b',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '0 4px',
-                        color: '#fbbf24',
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        whiteSpace: 'nowrap',
-                        animation: reduceMotion ? 'none' : 'pulse 1s infinite',
-                      }}
-                      title="Pause Check Window: Audio paused instantly, evaluating classification"
-                    >
-                      GAP ({b.durationMs}ms)
-                    </div>
-                  );
-                }
+                const isPauseGap = b.lane === 'pause_gap';
+                const widthPx = Math.min(220, Math.max(56, Math.round(b.durationMs / 25)));
 
                 return (
                   <div
                     key={b.id}
+                    className="tabular-nums"
                     style={{
-                      height: '20px',
+                      height: '18px',
                       width: `${widthPx}px`,
-                      minWidth: '40px',
+                      minWidth: '56px',
                       flexShrink: 0,
-                      background: 'linear-gradient(90deg, #059669 0%, #10b981 100%)',
-                      borderRadius: '4px',
+                      background: isPauseGap ? 'var(--decision-amber-bg)' : 'var(--space-gold)',
+                      color: isPauseGap ? 'var(--decision-amber)' : 'var(--space-black)',
+                      border: `1px solid ${isPauseGap ? 'var(--decision-amber-border)' : 'var(--space-gold)'}`,
+                      borderRadius: '3px',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       padding: '0 6px',
-                      color: '#ffffff',
-                      fontSize: '0.66rem',
-                      fontWeight: 600,
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      boxShadow: b.isLive ? '0 0 10px rgba(16, 185, 129, 0.5)' : 'none',
+                      boxShadow: b.isLive
+                        ? isPauseGap
+                          ? '0 0 10px rgba(255, 209, 102, 0.45)'
+                          : '0 0 10px var(--space-gold-glow)'
+                        : 'none',
                     }}
                   >
-                    Audio ({b.durationMs}ms)
+                    {isPauseGap ? `PAUSE (${b.durationMs}ms)` : `${b.durationMs} ms`}
                   </div>
                 );
               })
             )}
           </div>
+        </div>
+
+        {/* Subtle timeline track ticks */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            paddingLeft: '46px',
+            fontSize: '0.58rem',
+            color: 'var(--space-star-50)',
+            fontFamily: 'var(--font-hud)',
+          }}
+        >
+          <span>0s</span>
+          <span>1s</span>
+          <span>2s</span>
+          <span>3s</span>
+          <span>4s</span>
+          <span>5s+</span>
         </div>
       </div>
     </div>

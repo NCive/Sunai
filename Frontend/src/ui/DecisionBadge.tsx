@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { DecisionType } from '../sphere/SphereRenderer';
+import { ShieldIcon, ActivityIcon, PlayIcon, StopIcon, HelpCircleIcon } from './Icons';
 
 export interface DecisionBadgeProps {
   decision: DecisionType | null;
@@ -16,49 +17,49 @@ interface DecisionConfig {
   bgColor: string;
   borderColor: string;
   textColor: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const DECISION_LOOKUP: Record<DecisionType, DecisionConfig> = {
   noise: {
-    label: 'Noise Ignored',
+    label: 'Noise Filtered',
     sublabel: 'Acoustic artifact filtered • Resuming playback',
-    bgColor: 'rgba(34, 197, 94, 0.16)',
-    borderColor: 'rgba(34, 197, 94, 0.5)',
-    textColor: '#4ade80',
-    icon: '🛡️',
+    bgColor: 'var(--decision-green-bg)',
+    borderColor: 'var(--decision-green-border)',
+    textColor: 'var(--decision-green)',
+    icon: <ShieldIcon size={16} color="var(--decision-green)" />,
   },
   small_sound: {
     label: 'Backchannel Detected',
-    sublabel: 'User nodded / murmured ("Haan", "Hmm") • Resuming playback',
-    bgColor: 'rgba(16, 185, 129, 0.18)',
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-    textColor: '#34d399',
-    icon: '👂',
+    sublabel: 'User murmured ("Haan", "Hmm") • Resuming playback',
+    bgColor: 'var(--decision-green-bg)',
+    borderColor: 'var(--decision-green-border)',
+    textColor: 'var(--decision-green)',
+    icon: <ActivityIcon size={16} color="var(--decision-green)" />,
   },
   go_on: {
     label: 'Go-On Command',
     sublabel: 'User prompted ("Aage bolo") • Continuing remaining sentences',
-    bgColor: 'rgba(6, 182, 212, 0.18)',
-    borderColor: 'rgba(6, 182, 212, 0.5)',
-    textColor: '#38bdf8',
-    icon: '▶️',
+    bgColor: 'var(--decision-green-bg)',
+    borderColor: 'var(--decision-green-border)',
+    textColor: 'var(--decision-green)',
+    icon: <PlayIcon size={16} color="var(--decision-green)" />,
   },
   interruption: {
     label: 'Interruption Confirmed',
-    sublabel: 'Stop word or question detected • Stopping and listening',
-    bgColor: 'rgba(239, 68, 68, 0.2)',
-    borderColor: 'rgba(239, 68, 68, 0.6)',
-    textColor: '#f87171',
-    icon: '🛑',
+    sublabel: 'Stop word or question detected • Stopping audio & listening',
+    bgColor: 'var(--decision-red-bg)',
+    borderColor: 'var(--decision-red-border)',
+    textColor: 'var(--decision-red)',
+    icon: <StopIcon size={16} color="var(--decision-red)" />,
   },
   unclear: {
     label: 'Unclear Vocalization',
     sublabel: 'Voice detected without clear words • Asking "Ji?"',
-    bgColor: 'rgba(245, 158, 11, 0.18)',
-    borderColor: 'rgba(245, 158, 11, 0.5)',
-    textColor: '#fbbf24',
-    icon: '❓',
+    bgColor: 'var(--decision-amber-bg)',
+    borderColor: 'var(--decision-amber-border)',
+    textColor: 'var(--decision-amber)',
+    icon: <HelpCircleIcon size={16} color="var(--decision-amber)" />,
   },
 };
 
@@ -95,53 +96,72 @@ export const DecisionBadge: React.FC<DecisionBadgeProps> = ({
   return (
     <div
       className={className}
+      role="status"
+      aria-live="polite"
       style={{
         position: 'relative',
-        transform: !reduceMotion && visible ? 'scale(1)' : 'scale(0.92)',
+        transform: !reduceMotion && visible ? 'scale(1)' : 'scale(0.96)',
         opacity: visible ? 1 : 0,
-        transition: reduceMotion
-          ? 'opacity 0.2s ease'
-          : 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease',
-        background: config.bgColor,
-        border: `1.5px solid ${config.borderColor}`,
-        borderRadius: '12px',
-        padding: '8px 18px',
-        backdropFilter: 'blur(14px)',
-        boxShadow: `0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px ${config.borderColor}`,
-        zIndex: 30,
-        pointerEvents: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        maxWidth: '90vw',
+        transition: reduceMotion ? 'none' : 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         ...style,
       }}
     >
-      <span style={{ fontSize: '1.2rem' }}>{config.icon}</span>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontWeight: 700, fontSize: '0.88rem', color: config.textColor, letterSpacing: '0.02em' }}>
-            {config.label}
-          </span>
-          {text && (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          background: 'var(--space-navy-88)',
+          border: `1px solid ${config.borderColor}`,
+          borderRadius: '6px',
+          padding: '8px 16px',
+          boxShadow: `0 0 20px ${config.bgColor}, 0 4px 16px rgba(0, 0, 0, 0.6)`,
+          maxWidth: '520px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '32px',
+            height: '32px',
+            borderRadius: '4px',
+            background: config.bgColor,
+            border: `1px solid ${config.borderColor}`,
+            flexShrink: 0,
+          }}
+        >
+          {config.icon}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
               style={{
-                fontSize: '0.74rem',
-                color: '#cbd5e1',
-                background: 'rgba(255, 255, 255, 0.08)',
-                padding: '1px 6px',
-                borderRadius: '4px',
+                fontFamily: 'var(--font-hud)',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: config.textColor,
               }}
             >
-              "{text}"
+              {text || config.label}
             </span>
-          )}
+          </div>
+
+          <span
+            style={{
+              fontSize: '0.70rem',
+              color: 'var(--space-star-70)',
+              lineHeight: 1.3,
+            }}
+          >
+            {config.sublabel}
+          </span>
         </div>
-        <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-          {config.sublabel}
-        </span>
       </div>
     </div>
   );
 };
-

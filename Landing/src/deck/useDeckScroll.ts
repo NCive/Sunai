@@ -109,6 +109,7 @@ export function useDeckScroll(reducedMotion: boolean) {
     });
 
     const totalHeight = cumulativePx;
+    const maxScroll = Math.max(1, totalHeight - vh);
 
     offsets.forEach((off, i) => {
       const slide = SLIDES_REGISTRY[i];
@@ -116,10 +117,10 @@ export function useDeckScroll(reducedMotion: boolean) {
         const contentPx = contentLengths[i];
         for (let s = 0; s < slide.buildSteps; s++) {
           const stepOff = off + (contentPx / slide.buildSteps) * s;
-          snapPoints.push(totalHeight > 0 ? stepOff / totalHeight : 0);
+          snapPoints.push(Math.min(1, Math.max(0, stepOff / maxScroll)));
         }
       } else {
-        snapPoints.push(totalHeight > 0 ? off / totalHeight : 0);
+        snapPoints.push(Math.min(1, Math.max(0, off / maxScroll)));
       }
     });
 

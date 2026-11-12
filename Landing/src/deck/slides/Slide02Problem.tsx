@@ -40,17 +40,17 @@ export function Slide02Problem() {
                   )}
                 </div>
 
-                <h3 className="text-sm font-heading font-normal tracking-wider text-[#D1E8E2] uppercase mb-2">
+                <h3 className="text-sm font-heading font-normal tracking-wider text-[#EAF0FF] uppercase mb-2">
                   {lane.title}
                 </h3>
 
                 <div className="space-y-1.5 text-xs">
-                  <div className="p-2 rounded bg-[#070F0D]/60 border border-[#116466]/30">
-                    <span className="text-[#A3C8BF]/60 text-[10px] block font-mono">USER ACTION</span>
-                    <span className="text-[#D1E8E2]">{lane.userAction}</span>
+                  <div className="p-2 rounded bg-[#0A1024]/60 border border-[#202D4D]">
+                    <span className="text-[#647394] text-[10px] block font-mono">USER ACTION</span>
+                    <span className="text-[#EAF0FF]">{lane.userAction}</span>
                   </div>
-                  <div className="p-2 rounded bg-[#070F0D]/60 border border-[#116466]/30">
-                    <span className="text-[#A3C8BF]/60 text-[10px] block font-mono">BOT RESPONSE</span>
+                  <div className="p-2 rounded bg-[#0A1024]/60 border border-[#202D4D]">
+                    <span className="text-[#647394] text-[10px] block font-mono">BOT RESPONSE</span>
                     <span className={lane.bad ? 'text-[#FF6A5C]' : 'text-[#2FD3A5]'}>
                       {lane.botAction}
                     </span>
@@ -58,40 +58,40 @@ export function Slide02Problem() {
                 </div>
               </div>
 
-              <div className="pt-2 mt-2 border-t border-[#116466]/30 text-[11px] font-mono text-[#A3C8BF]">
-                Result: <span className="text-[#FFCB9A]">{lane.result}</span>
+              <div className="pt-2 mt-2 border-t border-[#202D4D] text-[11px] font-mono text-[#A1AFCE]">
+                Result: <span className="text-[#E5C18B]">{lane.result}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Audio Timeline Lanes Visualizer */}
-        <div className="p-3.5 rounded-sm deck-card border border-[#116466]/40 bg-[#070F0D]/80">
+        <div className="p-3.5 rounded-sm deck-card border border-[#202D4D] bg-[#0A1024]/80">
           <div className="flex items-center justify-between mb-2 text-xs font-mono">
-            <span className="text-[#D1E8E2] font-heading tracking-wider uppercase">
+            <span className="text-[#EAF0FF] font-heading tracking-wider uppercase">
               Conversational Audio Timeline Lanes
             </span>
-            <span className="text-[10px] text-[#A3C8BF]/60 bg-[#116466]/20 px-2 py-0.5 rounded">
+            <span className="text-[10px] text-[#A1AFCE] bg-[#111B35] px-2 py-0.5 rounded">
               {content.problem.caption}
             </span>
           </div>
 
           <div className="space-y-2 text-[11px] font-mono">
             {/* Lane 1 */}
-            <div className="grid grid-cols-12 gap-1.5 h-7 items-center bg-[#070F0D]/90 p-1 rounded border border-[#FF6A5C]/20">
+            <div className="grid grid-cols-12 gap-1.5 h-7 items-center bg-[#050817]/90 p-1 rounded border border-[#FF6A5C]/20">
               <div className="col-span-10 bg-[#FF6A5C]/20 text-[#FF6A5C] px-2 h-full rounded flex items-center justify-between text-[10px]">
                 <span>Traditional Bot speaks continuous monologue...</span>
                 <span className="flex items-center gap-1"><VolumeX className="w-3 h-3" /> Audio Collided</span>
               </div>
-              <div className="col-span-2 text-[#A3C8BF]/50 text-center text-[10px]">Monologue</div>
+              <div className="col-span-2 text-[#647394] text-center text-[10px]">Monologue</div>
             </div>
 
             {/* Lane 2 */}
-            <div className="grid grid-cols-12 gap-1.5 h-7 items-center bg-[#070F0D]/90 p-1 rounded border border-[#FFCB9A]/20">
-              <div className="col-span-4 bg-[#2C3531] text-[#D1E8E2] px-2 h-full rounded flex items-center text-[10px]">
+            <div className="grid grid-cols-12 gap-1.5 h-7 items-center bg-[#050817]/90 p-1 rounded border border-[#FFD166]/20">
+              <div className="col-span-4 bg-[#02030B] text-[#EAF0FF] px-2 h-full rounded flex items-center text-[10px]">
                 Speaking...
               </div>
-              <div className="col-span-2 bg-[#FFCB9A]/20 text-[#FFCB9A] px-1 h-full rounded flex items-center justify-center text-[10px]">
+              <div className="col-span-2 bg-[#FFD166]/20 text-[#FFD166] px-1 h-full rounded flex items-center justify-center text-[10px]">
                 Cough detected
               </div>
               <div className="col-span-6 border border-dashed border-[#FF6A5C]/30 text-[#FF6A5C] px-2 h-full rounded flex items-center text-[10px]">
@@ -100,17 +100,17 @@ export function Slide02Problem() {
             </div>
 
             {/* Lane 3: Sunai */}
-            <div className="grid grid-cols-12 gap-1.5 h-8 items-center bg-[#070F0D]/90 p-1 rounded border border-[#2FD3A5]/40 shadow-[0_0_15px_rgba(47,211,165,0.1)]">
-              <div className="col-span-3 bg-[#116466]/50 text-[#D1E8E2] px-2 h-full rounded flex items-center text-[10px]">
+            <div className="grid grid-cols-12 gap-1.5 h-8 items-center bg-[#050817]/90 p-1 rounded border border-[#2FD3A5]/40 shadow-[0_0_15px_rgba(47,211,165,0.1)]">
+              <div className="col-span-3 bg-[#244DA8]/50 text-[#EAF0FF] px-2 h-full rounded flex items-center text-[10px]">
                 Speaking sentence 1...
               </div>
-              <div className="col-span-2 bg-[#FFCB9A]/30 border border-[#FFCB9A] text-[#FFCB9A] px-1 h-full rounded flex items-center justify-center text-[10px] animate-pulse">
+              <div className="col-span-2 bg-[#FFD166]/30 border border-[#FFD166] text-[#FFD166] px-1 h-full rounded flex items-center justify-center text-[10px] animate-pulse">
                 Sound &#8594; Paused
               </div>
               <div className="col-span-2 bg-[#2FD3A5]/20 border border-[#2FD3A5]/40 text-[#2FD3A5] px-1 h-full rounded flex items-center justify-center text-[10px]">
                 Classified: Noise
               </div>
-              <div className="col-span-5 bg-[#2FD3A5]/30 text-[#D1E8E2] px-2 h-full rounded flex items-center justify-between text-[10px]">
+              <div className="col-span-5 bg-[#2FD3A5]/30 text-[#EAF0FF] px-2 h-full rounded flex items-center justify-between text-[10px]">
                 <span>Resumes sentence smoothly</span>
                 <span className="flex items-center gap-1 text-[#2FD3A5]"><Volume2 className="w-3 h-3" /> Seamless</span>
               </div>
@@ -121,4 +121,3 @@ export function Slide02Problem() {
     </SlideFrame>
   );
 }
-

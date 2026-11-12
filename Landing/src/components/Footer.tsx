@@ -16,7 +16,7 @@ export function Footer({
   onToggleReducedMotion,
 }: FooterProps) {
   return (
-    <footer className="py-16 border-t border-white/10 bg-[#040508] relative overflow-hidden">
+    <footer className="py-16 border-t border-white/10 bg-[#02030B] relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Main Footer Block */}

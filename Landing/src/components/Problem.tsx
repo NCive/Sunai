@@ -87,7 +87,7 @@ export function Problem({ reducedMotion }: ProblemProps) {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="p-6 sm:p-8 rounded-2xl glass-card border border-white/10 bg-[#090a10]"
+          className="p-6 sm:p-8 rounded-2xl glass-card border border-white/10 bg-[#0A1024]"
         >
           <div className="flex items-center justify-between mb-6">
             <h4 className="text-sm font-heading font-semibold text-white tracking-wide">

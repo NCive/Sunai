@@ -8,7 +8,7 @@ interface TeamCreditsProps {
 
 export function TeamCredits({ reducedMotion }: TeamCreditsProps) {
   return (
-    <section id="team" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#06070a]">
+    <section id="team" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#02030B]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -34,7 +34,7 @@ export function TeamCredits({ reducedMotion }: TeamCreditsProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.45, delay: idx * 0.1 }}
-              className="p-8 rounded-3xl glass-card border border-white/10 flex flex-col justify-between bg-[#090b14]"
+              className="p-8 rounded-3xl glass-card border border-white/10 flex flex-col justify-between bg-[#0A1024]"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -75,7 +75,7 @@ export function TeamCredits({ reducedMotion }: TeamCreditsProps) {
         </div>
 
         {/* Acknowledgments Strip */}
-        <div className="max-w-4xl p-6 rounded-2xl glass-card border border-white/10 mb-12 text-left bg-[#090a12]">
+        <div className="max-w-4xl p-6 rounded-2xl glass-card border border-white/10 mb-12 text-left bg-[#0A1024]">
           <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 mb-3">
             <Heart className="w-3.5 h-3.5 text-red-400" />
             <span className="uppercase tracking-wider">Acknowledgments &amp; Credits</span>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MetricsPayload } from '../ws/client';
+import { GlobeIcon, HeadphonesIcon, SparklesIcon, LockIcon, FileTextIcon, ChevronDownIcon, ChevronUpIcon } from './Icons';
 
 export interface StatusBarProps {
   metrics: MetricsPayload | null;
@@ -12,11 +13,11 @@ export interface StatusBarProps {
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
-  'hi-IN': '🇮🇳 Hindi (हिन्दी)',
-  'mr-IN': '🇮🇳 Marathi (मराठी)',
-  'hi-Latn': '🇮🇳 Hinglish (Roman)',
-  'en-IN': '🇮🇳 Indian English',
-  'en': '🇬🇧 English',
+  'hi-IN': 'Hindi (हिन्दी)',
+  'mr-IN': 'Marathi (मराठी)',
+  'hi-Latn': 'Hinglish (Roman)',
+  'en-IN': 'Indian English',
+  'en': 'English',
 };
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -30,7 +31,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const [showSourcesExpanded, setShowSourcesExpanded] = useState<boolean>(false);
 
-  const langLabel = LANGUAGE_LABELS[detectedLanguage] || `🌐 ${detectedLanguage}`;
+  const langLabel = LANGUAGE_LABELS[detectedLanguage] || detectedLanguage;
   const latencies = metrics?.latencies_ms;
 
   const transitionStyle = reduceMotion ? 'none' : 'all 0.25s ease';
@@ -43,8 +44,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         gap: '8px',
         width: '100%',
         maxWidth: '720px',
-        fontSize: '0.76rem',
-        color: '#cbd5e1',
+        fontSize: '0.74rem',
+        color: 'var(--space-star)',
         zIndex: 10,
       }}
     >
@@ -56,22 +57,22 @@ export const StatusBar: React.FC<StatusBarProps> = ({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '8px',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '10px',
+          background: 'var(--space-navy-90)',
+          border: '1px solid var(--space-blue-70)',
+          borderRadius: '6px',
           padding: '6px 12px',
-          backdropFilter: 'blur(8px)',
         }}
       >
         {/* Language Chip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#94a3b8', fontWeight: 600 }}>Lang:</span>
+          <GlobeIcon size={13} color="var(--space-gold)" />
+          <span style={{ color: 'var(--space-star-70)', fontWeight: 600 }}>Lang:</span>
           <span
             style={{
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              borderRadius: '6px',
+              background: 'var(--space-blue-20)',
+              color: 'var(--space-star)',
+              border: '1px solid var(--space-blue-70)',
+              borderRadius: '4px',
               padding: '2px 8px',
               fontWeight: 600,
             }}
@@ -82,21 +83,22 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
         {/* Mic Level Bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#94a3b8', fontWeight: 600 }}>Mic:</span>
+          <span style={{ color: 'var(--space-star-70)', fontWeight: 600 }}>Mic:</span>
           <div
             style={{
               width: '70px',
-              height: '8px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '4px',
+              height: '6px',
+              background: 'var(--space-black)',
+              borderRadius: '3px',
               overflow: 'hidden',
+              border: '1px solid var(--space-blue-40)',
             }}
           >
             <div
               style={{
                 width: `${Math.min(100, Math.round(micEnergy * 400))}%`,
                 height: '100%',
-                background: isSpeakingVad ? '#22c55e' : '#38bdf8',
+                background: isSpeakingVad ? 'var(--decision-green)' : 'var(--space-gold)',
                 transition: reduceMotion ? 'none' : 'width 0.05s linear',
               }}
             />
@@ -104,8 +106,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         </div>
 
         {/* Headphone Advisory Tip */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94a3b8', fontSize: '0.7rem' }}>
-          <span>🎧</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--space-star-70)', fontSize: '0.68rem' }}>
+          <HeadphonesIcon size={14} color="var(--space-gold)" />
           <span>Headphones recommended for acoustic isolation</span>
         </div>
       </div>
@@ -114,62 +116,65 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       {latencies && Object.keys(latencies).length > 0 && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.75)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '10px',
+            background: 'var(--space-navy-90)',
+            border: '1px solid var(--space-blue-70)',
+            borderRadius: '6px',
             padding: '6px 12px',
-            backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             flexWrap: 'wrap',
           }}
         >
-          <span style={{ fontWeight: 700, color: '#38bdf8', letterSpacing: '0.04em' }}>⚡ STAGE LATENCIES:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--space-gold)', fontWeight: 700, fontFamily: 'var(--font-hud)', letterSpacing: '0.04em' }}>
+            <SparklesIcon size={13} color="var(--space-gold)" />
+            <span>STAGE LATENCIES:</span>
+          </div>
 
           {latencies.stt_final_text !== undefined && (
-            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-              STT: <strong style={{ color: '#fff' }}>{latencies.stt_final_text}ms</strong>
+            <span style={{ background: 'var(--space-blue-20)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--space-blue-40)' }}>
+              STT: <strong className="tabular-nums" style={{ color: 'var(--space-star)' }}>{latencies.stt_final_text} ms</strong>
             </span>
           )}
 
           {latencies.translation !== undefined && latencies.translation > 0 && (
-            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-              Trans: <strong style={{ color: '#fff' }}>{latencies.translation}ms</strong>
+            <span style={{ background: 'var(--space-blue-20)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--space-blue-40)' }}>
+              Trans: <strong className="tabular-nums" style={{ color: 'var(--space-star)' }}>{latencies.translation} ms</strong>
             </span>
           )}
 
           {latencies.retrieval !== undefined && (
-            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-              RAG: <strong style={{ color: '#fff' }}>{latencies.retrieval}ms</strong>
+            <span style={{ background: 'var(--space-blue-20)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--space-blue-40)' }}>
+              RAG: <strong className="tabular-nums" style={{ color: 'var(--space-star)' }}>{latencies.retrieval} ms</strong>
             </span>
           )}
 
           {latencies.first_llm_token !== undefined && (
-            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-              LLM 1st Tok: <strong style={{ color: '#fff' }}>{latencies.first_llm_token}ms</strong>
+            <span style={{ background: 'var(--space-blue-20)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--space-blue-40)' }}>
+              LLM TTFT: <strong className="tabular-nums" style={{ color: 'var(--space-star)' }}>{latencies.first_llm_token} ms</strong>
             </span>
           )}
 
           {latencies.first_tts_audio !== undefined && (
-            <span style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-              TTS 1st: <strong style={{ color: '#fff' }}>{latencies.first_tts_audio}ms</strong>
+            <span style={{ background: 'var(--space-blue-20)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--space-blue-40)' }}>
+              TTS: <strong className="tabular-nums" style={{ color: 'var(--space-star)' }}>{latencies.first_tts_audio} ms</strong>
             </span>
           )}
 
           {latencies.response_delay !== undefined && (
             <span
+              className="tabular-nums"
               style={{
-                background: 'rgba(16, 185, 129, 0.2)',
-                color: '#34d399',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
+                background: 'var(--decision-green-bg)',
+                color: 'var(--decision-green)',
+                border: '1px solid var(--decision-green-border)',
                 padding: '2px 8px',
                 borderRadius: '4px',
                 fontWeight: 700,
                 marginLeft: 'auto',
               }}
             >
-              Total Audio Delay: {latencies.response_delay}ms
+              Total Audio Delay: {latencies.response_delay} ms
             </span>
           )}
         </div>
@@ -179,11 +184,10 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       {(sources.length > 0 || isRefused) && (
         <div
           style={{
-            background: isRefused ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-            border: `1px solid ${isRefused ? 'rgba(239, 68, 68, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`,
-            borderRadius: '10px',
+            background: isRefused ? 'var(--decision-red-bg)' : 'var(--space-navy-90)',
+            border: `1px solid ${isRefused ? 'var(--decision-red-border)' : 'var(--space-blue-70)'}`,
+            borderRadius: '6px',
             padding: '8px 12px',
-            backdropFilter: 'blur(8px)',
             display: 'flex',
             flexDirection: 'column',
             gap: '4px',
@@ -192,13 +196,15 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {isRefused ? (
-              <span style={{ color: '#f87171', fontWeight: 700 }}>
-                🔒 Refusal Gate Triggered (Question not grounded in documents)
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--decision-red)', fontWeight: 700 }}>
+                <LockIcon size={14} color="var(--decision-red)" />
+                <span>Refusal Gate Triggered (Question not grounded in documents)</span>
+              </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ color: '#34d399', fontWeight: 700 }}>📚 Grounded Knowledge Sources:</span>
-                <span style={{ color: '#a7f3d0' }}>{sources.join(', ')}</span>
+                <FileTextIcon size={14} color="var(--space-gold)" />
+                <span style={{ color: 'var(--space-star)', fontWeight: 700 }}>Grounded Knowledge Sources:</span>
+                <span style={{ color: 'var(--space-star-70)' }}>{sources.join(', ')}</span>
               </div>
             )}
             {!isRefused && sources.length > 0 && (
@@ -207,18 +213,31 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#6ee7b7',
-                  fontSize: '0.7rem',
+                  color: 'var(--space-star)',
+                  fontSize: '0.68rem',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px',
                 }}
               >
-                {showSourcesExpanded ? '▲ Hide' : '▼ Details'}
+                {showSourcesExpanded ? (
+                  <>
+                    <ChevronUpIcon size={12} />
+                    <span>Hide</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronDownIcon size={12} />
+                    <span>Details</span>
+                  </>
+                )}
               </button>
             )}
           </div>
 
           {showSourcesExpanded && !isRefused && (
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '4px', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.70rem', color: 'var(--space-star-70)', borderTop: '1px solid var(--space-blue-40)', paddingTop: '4px', marginTop: '2px' }}>
               Answers strictly constrained to retrieved English document chunks via hybrid BM25 + all-MiniLM-L6-v2 vector index.
             </div>
           )}
@@ -227,4 +246,3 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     </div>
   );
 };
-

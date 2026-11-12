@@ -97,8 +97,7 @@ export function SlideTransitionView({
             id={`deck-slide-layer-${slide.id}`}
             className="absolute inset-0 w-full h-full gpu-layer"
             style={slideStyle}
-            // @ts-expect-error inert is standard HTML attribute
-            inert={!isVisible ? '' : undefined}
+            inert={!isVisible ? true : undefined}
             aria-hidden={!isVisible}
           >
             {slide.render({
@@ -146,7 +145,7 @@ function getTransitionStyles(
             style={{
               top: `${(1 - t) * 100}%`,
               height: '3px',
-              background: 'linear-gradient(90deg, transparent, #2FD3A5, #FFCB9A, transparent)',
+              background: 'linear-gradient(90deg, transparent, #2FD3A5, #E5C18B, transparent)',
               boxShadow: '0 0 16px rgba(47, 211, 165, 0.7)',
               opacity: flashOpacity * 0.9,
               transform: 'translateY(-50%) translateZ(0)',
@@ -214,8 +213,8 @@ function getTransitionStyles(
               left: '0',
               transformOrigin: 'top left',
               transform: `translate(${t * 160 - 40}vw, 0) rotate(45deg) translateZ(0)`,
-              background: 'linear-gradient(90deg, transparent, #FFCB9A, #2FD3A5, transparent)',
-              boxShadow: '0 0 20px rgba(255, 203, 154, 0.8)',
+              background: 'linear-gradient(90deg, transparent, #E5C18B, #2FD3A5, transparent)',
+              boxShadow: '0 0 20px rgba(229, 193, 139, 0.8)',
               opacity: flashOpacity * 0.85,
             }}
           />
@@ -289,8 +288,8 @@ function getTransitionStyles(
             style={{
               left: `${(1 - t) * 100}%`,
               width: '3px',
-              background: 'linear-gradient(180deg, transparent, #D1E8E2, #116466, transparent)',
-              boxShadow: '0 0 16px rgba(209, 232, 226, 0.7)',
+              background: 'linear-gradient(180deg, transparent, #62C9E8, #244DA8, transparent)',
+              boxShadow: '0 0 16px rgba(98, 201, 232, 0.7)',
               opacity: flashOpacity * 0.85,
               transform: 'translateX(-50%) translateZ(0)',
             }}
@@ -313,7 +312,7 @@ function getTransitionStyles(
         },
         accent: (
           <div
-            className="absolute inset-0 pointer-events-none z-30 bg-[#070F0D]"
+            className="absolute inset-0 pointer-events-none z-30 bg-[#02030B]"
             style={{
               opacity: (1 - Math.abs(t - 0.5) * 2) * 0.85,
             }}
@@ -340,8 +339,8 @@ function getTransitionStyles(
             style={{
               top: `${t * 100}%`,
               height: '3px',
-              background: 'linear-gradient(90deg, transparent, #FFCB9A, #2FD3A5, transparent)',
-              boxShadow: '0 0 16px rgba(255, 203, 154, 0.75)',
+              background: 'linear-gradient(90deg, transparent, #E5C18B, #2FD3A5, transparent)',
+              boxShadow: '0 0 16px rgba(229, 193, 139, 0.75)',
               opacity: flashOpacity * 0.9,
               transform: 'translateY(-50%) translateZ(0)',
             }}
@@ -382,8 +381,8 @@ function getTransitionStyles(
               style={{
                 bottom: `${(1 - t) * 50}%`,
                 height: '2px',
-                background: 'linear-gradient(90deg, transparent, #FFCB9A, transparent)',
-                boxShadow: '0 0 12px rgba(255, 203, 154, 0.7)',
+                background: 'linear-gradient(90deg, transparent, #E5C18B, transparent)',
+                boxShadow: '0 0 12px rgba(229, 193, 139, 0.7)',
                 opacity: flashOpacity * 0.8,
               }}
             />
@@ -426,8 +425,8 @@ function getTransitionStyles(
             style={{
               width: `${(1 - t * 0.5) * 100}vmax`,
               height: `${(1 - t * 0.5) * 100}vmax`,
-              border: '2px solid rgba(255, 203, 154, 0.6)',
-              boxShadow: '0 0 20px rgba(255, 203, 154, 0.35)',
+              border: '2px solid rgba(229, 193, 139, 0.6)',
+              boxShadow: '0 0 20px rgba(229, 193, 139, 0.35)',
               opacity: flashOpacity * 0.7,
               transform: 'translate(-50%, -50%) translateZ(0)',
             }}

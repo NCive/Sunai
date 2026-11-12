@@ -29,7 +29,7 @@ export function TechStackMarquee({ reducedMotion }: TechStackMarqueeProps) {
   return (
     <section
       ref={containerRef}
-      className="py-16 relative overflow-hidden border-t border-white/5 bg-[#06070a]"
+      className="py-16 relative overflow-hidden border-t border-white/5 bg-[#02030B]"
       aria-label="Technology Stack"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 text-center">
@@ -52,8 +52,8 @@ export function TechStackMarquee({ reducedMotion }: TechStackMarqueeProps) {
       ) : (
         <div className="relative w-full overflow-hidden flex items-center group">
           {/* Gradient Masks */}
-          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#06070a] to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#06070a] to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#02030B] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#02030B] to-transparent z-10 pointer-events-none" />
 
           {/* Continuous Wordmark Marquee Strip */}
           <div

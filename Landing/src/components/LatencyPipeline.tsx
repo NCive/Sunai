@@ -8,7 +8,7 @@ interface LatencyPipelineProps {
 
 export function LatencyPipeline({ reducedMotion: _reducedMotion }: LatencyPipelineProps) {
   return (
-    <section id="pipeline" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#06070a]">
+    <section id="pipeline" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#02030B]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -25,7 +25,7 @@ export function LatencyPipeline({ reducedMotion: _reducedMotion }: LatencyPipeli
         </div>
 
         {/* Pipeline Comparison Card */}
-        <div className="p-6 sm:p-10 rounded-3xl glass-card border border-white/10 bg-[#090b14] space-y-10">
+        <div className="p-6 sm:p-10 rounded-3xl glass-card border border-white/10 bg-[#0A1024] space-y-10">
           
           {/* Top: Sunai Overlapping Streaming Pipeline */}
           <div>
@@ -97,7 +97,7 @@ export function LatencyPipeline({ reducedMotion: _reducedMotion }: LatencyPipeli
                       transition={{ duration: 0.8, delay: idx * 0.2, ease: 'easeOut' }}
                       style={{
                         marginLeft: `${stage.startPercent}%`,
-                        backgroundColor: '#475569',
+                        backgroundColor: '#244DA8',
                       }}
                       className="h-full rounded-md flex items-center px-2 text-[10px] font-mono text-white font-medium truncate"
                     >

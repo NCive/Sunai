@@ -33,16 +33,19 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
     return null;
   }
 
-  const transitionStyle = reduceMotion ? 'none' : 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)';
+  const transitionStyle = reduceMotion ? 'none' : 'all 0.25s ease';
 
   return (
     <div
+      role="region"
+      aria-label="Live Captions"
+      aria-live="polite"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: '10px',
         width: '100%',
-        maxWidth: '720px',
+        maxWidth: '740px',
         padding: '0 16px',
         zIndex: 10,
         pointerEvents: 'none',
@@ -54,15 +57,15 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
           style={{
             alignSelf: 'flex-start',
             maxWidth: '85%',
-            background: 'rgba(30, 41, 59, 0.75)',
-            border: `1px solid ${isUserSpeaking ? 'rgba(56, 189, 248, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
-            borderRadius: '14px',
+            background: 'var(--space-navy-90)',
+            border: `1px solid ${isUserSpeaking ? 'var(--space-gold)' : 'var(--space-blue-70)'}`,
+            borderRadius: '6px',
             padding: '10px 16px',
-            color: '#f8fafc',
-            fontSize: '0.95rem',
+            color: 'var(--space-star)',
+            fontFamily: 'var(--font-indic)',
+            fontSize: '1rem',
             lineHeight: 1.5,
-            boxShadow: isUserSpeaking ? '0 0 16px rgba(56, 189, 248, 0.25)' : '0 4px 16px rgba(0, 0, 0, 0.3)',
-            backdropFilter: 'blur(12px)',
+            boxShadow: isUserSpeaking ? '0 0 16px var(--space-gold-glow)' : '0 4px 16px rgba(0, 0, 0, 0.4)',
             transition: transitionStyle,
           }}
         >
@@ -72,12 +75,21 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: isUserSpeaking ? '#38bdf8' : '#94a3b8',
-                boxShadow: isUserSpeaking ? '0 0 8px #38bdf8' : 'none',
+                background: isUserSpeaking ? 'var(--decision-green)' : 'var(--space-star-70)',
+                boxShadow: isUserSpeaking ? '0 0 8px var(--decision-green)' : 'none',
                 display: 'inline-block',
               }}
             />
-            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-hud)',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: 'var(--space-star-70)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
               You {isUserSpeaking ? '(Speaking...)' : ''}
             </span>
           </div>
@@ -91,12 +103,11 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
           style={{
             alignSelf: 'flex-end',
             maxWidth: '92%',
-            background: 'rgba(15, 23, 42, 0.85)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '16px',
+            background: 'var(--space-navy-90)',
+            border: '1px solid var(--space-blue-70)',
+            borderRadius: '6px',
             padding: '12px 18px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
-            backdropFilter: 'blur(14px)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
             transition: transitionStyle,
           }}
         >
@@ -104,20 +115,28 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span
                 style={{
-                  width: '7px',
-                  height: '7px',
+                  width: '6px',
+                  height: '6px',
                   borderRadius: '50%',
-                  background: isInterrupted ? '#ef4444' : '#10b981',
-                  boxShadow: isInterrupted ? '0 0 8px #ef4444' : '0 0 8px #10b981',
+                  background: isInterrupted ? 'var(--decision-red)' : 'var(--decision-green)',
+                  boxShadow: isInterrupted ? '0 0 8px var(--decision-red)' : '0 0 8px var(--decision-green)',
                   display: 'inline-block',
                 }}
               />
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.04em' }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-hud)',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  color: 'var(--space-gold)',
+                  letterSpacing: '0.08em',
+                }}
+              >
                 SUNAI {isInterrupted ? '(Paused/Interrupted)' : ''} {isContinuation ? '(Resumed)' : ''}
               </span>
             </div>
             {isInterrupted && !isContinuation && (
-              <span style={{ fontSize: '0.7rem', color: '#f87171', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--decision-red)', fontWeight: 600 }}>
                 Unplayed sentences faded • Say "Go on" to continue
               </span>
             )}
@@ -129,18 +148,22 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
               const isActive = activeSentenceId !== null && String(sent.id) === String(activeSentenceId);
               const isUnplayed = sent.id > heardUpto;
 
-              // When interrupted, unplayed sentences fade away unless resumed via go on
               const shouldFadeOut = isInterrupted && !isContinuation && isUnplayed;
 
               return (
                 <div
                   key={sent.id}
                   style={{
-                    fontSize: '0.92rem',
+                    fontFamily: 'var(--font-indic)',
+                    fontSize: '1rem',
                     lineHeight: 1.55,
                     transition: transitionStyle,
-                    color: isHeard ? '#ffffff' : isActive ? '#e0f2fe' : '#64748b',
-                    opacity: shouldFadeOut ? 0.18 : isUnplayed ? 0.55 : 1.0,
+                    color: isHeard
+                      ? 'var(--space-star)'
+                      : isActive
+                      ? 'var(--space-gold)'
+                      : 'var(--space-star-70)',
+                    opacity: shouldFadeOut ? 0.2 : isUnplayed ? 0.6 : 1.0,
                     fontWeight: isHeard || isActive ? 500 : 400,
                     transform: shouldFadeOut && !reduceMotion ? 'translateX(6px)' : 'none',
                     display: 'flex',
@@ -149,19 +172,22 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
                   }}
                 >
                   <span
+                    className="tabular-nums"
                     style={{
+                      fontFamily: 'var(--font-hud)',
                       fontSize: '0.72rem',
                       fontWeight: 700,
-                      color: isActive ? '#38bdf8' : isHeard ? '#10b981' : '#475569',
-                      minWidth: '18px',
+                      color: isActive ? 'var(--space-gold)' : isHeard ? 'var(--decision-green)' : 'var(--space-star-50)',
+                      minWidth: '20px',
                     }}
                   >
                     {sent.id}.
                   </span>
                   <span
                     style={{
-                      borderBottom: isActive ? '1px dashed rgba(56, 189, 248, 0.6)' : 'none',
+                      borderBottom: isActive ? '1px dashed var(--space-gold)' : 'none',
                       paddingBottom: isActive ? '1px' : 0,
+                      textShadow: isActive ? '0 0 10px var(--space-gold-glow)' : 'none',
                     }}
                   >
                     {sent.text}
@@ -175,4 +201,3 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
     </div>
   );
 };
-

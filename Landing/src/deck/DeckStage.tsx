@@ -59,10 +59,10 @@ export function DeckStage({
   // If user requests reduced motion, render the stacked document layout
   if (reducedMotion) {
     return (
-      <div className="relative w-full min-h-screen bg-[#070F0D] text-[#D1E8E2] pb-24">
+      <div className="relative w-full min-h-screen bg-[#02030B] text-[#EAF0FF] pb-24">
         {/* Simple Top Bar */}
-        <header className="sticky top-0 left-0 right-0 z-50 py-3 px-6 bg-[#070F0D]/90 border-b border-[#116466]/40 flex items-center justify-between">
-          <span className="font-heading font-light tracking-deck-wide text-sm uppercase text-[#D1E8E2]">
+        <header className="sticky top-0 left-0 right-0 z-50 py-3 px-6 bg-[#0A1024]/90 border-b border-[#202D4D] flex items-center justify-between">
+          <span className="font-heading font-light tracking-deck-wide text-sm uppercase text-[#EAF0FF]">
             {content.hero.brand}
           </span>
           <div className="flex items-center gap-3">
@@ -74,14 +74,14 @@ export function DeckStage({
                   setOfflineModalOpen(true);
                 }
               }}
-              className="px-3 py-1.5 text-xs font-mono uppercase bg-[#FFCB9A] text-[#070F0D] font-bold rounded-sm"
+              className="px-3 py-1.5 text-xs font-mono uppercase bg-[#477FF5] text-white hover:bg-[#5b8ff7] font-bold rounded-sm shadow-sm"
             >
               Voice Assistant
             </a>
             <button
               type="button"
               onClick={onToggleReducedMotion}
-              className="p-1.5 text-xs font-mono text-[#A3C8BF] border border-[#116466] rounded"
+              className="p-1.5 text-xs font-mono text-[#A1AFCE] bg-[#0A1024] border border-[#202D4D] rounded hover:text-white hover:bg-[#111B35] transition-colors"
             >
               Enable Motion
             </button>
@@ -100,7 +100,7 @@ export function DeckStage({
           {SLIDES_REGISTRY.map((slide) => (
             <div
               key={slide.id}
-              className="min-h-[100dvh] flex items-center justify-center border-b border-[#116466]/20"
+              className="min-h-[100dvh] flex items-center justify-center border-b border-[#202D4D]"
               style={{ contentVisibility: 'auto', containIntrinsicSize: '100dvh' }}
             >
               {slide.render({
@@ -119,7 +119,7 @@ export function DeckStage({
   // Normal Scroll-Driven Presentation Deck
   return (
     <div
-      className="relative w-full bg-[#070F0D] text-[#D1E8E2]"
+      className="relative w-full bg-[#02030B] text-[#EAF0FF]"
       style={{
         opacity: isReady ? 1 : 0,
         transition: 'opacity 0.25s ease',

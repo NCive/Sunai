@@ -1,10 +1,105 @@
+/* =====================================================================
+   SUNAI FRONTEND - DEEP SPACE / COSMIC OBSERVATORY THEME
+   Palette:
+   --space-black:   #02030B (Void black: main background)
+   --space-navy:    #050817 (Deep space: secondary background)
+   --space-surface: #0A1024 (Nebula surface: panels, cards, sidebars)
+   --space-surface-elevated: #111B35 (Elevated surface: hover, raised areas)
+   --space-border:  #202D4D (Stellar borders: thin, low contrast)
+   --space-blue-deep: #244DA8 (Cosmic blue: deep accent)
+   --space-blue:    #477FF5 (Electric blue: primary buttons, interactions, active states)
+   --space-violet:  #7655C9 (Nebula violet: ambient lighting only)
+   --space-cyan:    #62C9E8 (Aurora cyan: focus rings, active highlights)
+   --space-starlight: #A5C8FF (Starlight glow: soft glow, low opacity)
+   --space-brown:   #956B50 (Cosmic bronze: small secondary accent)
+   --space-gold:    #E5C18B (Golden star: very rare key highlights)
+   --space-star:    #EAF0FF (Primary text)
+   --space-text-secondary: #A1AFCE (Secondary text)
+   --space-text-muted:     #647394 (Muted text)
+   Decision colors:
+   green #2FD3A5, red #FF6A5C, amber #FFD166
+   ===================================================================== */
+
+@import '@fontsource/raleway/300.css';
+@import '@fontsource/raleway/400.css';
+@import '@fontsource/raleway/600.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/noto-sans-devanagari/400.css';
+@import '@fontsource/noto-sans-devanagari/600.css';
+
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* THEME: "COSMIC OBSERVATORY" Canonical Colors */
+  --space-black: #02030B;
+  --space-navy: #050817;
+  --space-surface: #0A1024;
+  --space-surface-elevated: #111B35;
+  --space-border: #202D4D;
+  --space-blue-deep: #244DA8;
+  --space-blue: #477FF5;
+  --space-violet: #7655C9;
+  --space-cyan: #62C9E8;
+  --space-starlight: #A5C8FF;
+  --space-brown: #956B50;
+  --space-gold: #E5C18B;
+  --space-star: #EAF0FF;
+  --space-text-secondary: #A1AFCE;
+  --space-text-muted: #647394;
+
+  /* Decision Colors (Maintained semantic integrity) */
+  --decision-green: #2FD3A5;
+  --decision-green-bg: rgba(47, 211, 165, 0.15);
+  --decision-green-border: rgba(47, 211, 165, 0.45);
+
+  --decision-red: #FF6A5C;
+  --decision-red-bg: rgba(255, 106, 92, 0.15);
+  --decision-red-border: rgba(255, 106, 92, 0.45);
+
+  --decision-amber: #FFD166;
+  --decision-amber-bg: rgba(255, 209, 102, 0.15);
+  --decision-amber-border: rgba(255, 209, 102, 0.45);
+
+  /* Derived Tints */
+  --space-star-90: rgba(234, 240, 255, 0.90);
+  --space-star-70: #A1AFCE;
+  --space-star-50: #647394;
+  --space-star-25: rgba(100, 115, 148, 0.40);
+  --space-star-15: rgba(100, 115, 148, 0.25);
+  --space-star-10: rgba(100, 115, 148, 0.15);
+
+  --space-navy-85: rgba(10, 16, 36, 0.85);
+  --space-navy-88: rgba(10, 16, 36, 0.88);
+  --space-navy-90: rgba(10, 16, 36, 0.90);
+  --space-navy-95: rgba(10, 16, 36, 0.95);
+
+  --space-blue-70: #202D4D;
+  --space-blue-45: rgba(32, 45, 77, 0.60);
+  --space-blue-40: rgba(32, 45, 77, 0.45);
+  --space-blue-25: rgba(36, 77, 168, 0.25);
+  --space-blue-20: rgba(36, 77, 168, 0.20);
+  --space-blue-15: rgba(36, 77, 168, 0.15);
+  --space-blue-glow: rgba(71, 127, 245, 0.35);
+
+  --space-brown-25: rgba(149, 107, 80, 0.25);
+  --space-brown-40: rgba(149, 107, 80, 0.40);
+
+  --space-gold-80: rgba(229, 193, 139, 0.80);
+  --space-gold-40: rgba(229, 193, 139, 0.40);
+  --space-gold-20: rgba(229, 193, 139, 0.20);
+  --space-gold-glow: rgba(229, 193, 139, 0.25);
+
+  /* Typography */
+  --font-hud: 'Raleway', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-indic: 'Noto Sans Devanagari', 'Inter', sans-serif;
+
+  color-scheme: dark;
+  font-family: var(--font-body);
+  color: var(--space-star);
+  background-color: var(--space-black);
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
-  color: #e2e8f0;
-  background-color: #030408;
 }
 
 * {
@@ -17,254 +112,223 @@ body, html, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  background-color: var(--space-black);
 }
 
-/* Calm dark night-sky gradient per section 17A */
-.sunai-app {
+/* Tabular digits for numbers & latency */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard focus indicators (Accessibility) - Aurora cyan */
+:focus-visible {
+  outline: 2px solid var(--space-cyan) !important;
+  outline-offset: 2px !important;
+}
+
+/* Deep space background: void black to deep space with extremely faint nebula glows */
+.space-background {
   width: 100vw;
   height: 100vh;
   position: relative;
-  background: radial-gradient(circle at 50% 45%, #0d1222 0%, #060811 55%, #020306 100%);
+  background:
+    radial-gradient(circle at 45% 40%, rgba(118, 85, 201, 0.09) 0%, transparent 45%),
+    radial-gradient(ellipse 70% 35% at 50% 55%, rgba(36, 77, 168, 0.10) 0%, transparent 60%),
+    linear-gradient(135deg, var(--space-black) 0%, var(--space-navy) 50%, var(--space-black) 100%);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-/* Top bar */
-.top-bar {
+/* Sparse tiny stars via CSS radial-gradients */
+.space-stars {
   position: absolute;
-  top: 16px;
-  left: 20px;
-  right: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 10;
+  inset: 0;
   pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 120px 140px, rgba(165, 200, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 450px 220px, rgba(165, 200, 255, 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 780px 100px, rgba(229, 193, 139, 0.30), transparent),
+    radial-gradient(1px 1px at 1050px 320px, rgba(165, 200, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 1380px 160px, rgba(165, 200, 255, 0.30), transparent),
+    radial-gradient(1.5px 1.5px at 1650px 280px, rgba(165, 200, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 320px 580px, rgba(165, 200, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 890px 640px, rgba(165, 200, 255, 0.30), transparent),
+    radial-gradient(1.5px 1.5px at 1450px 560px, rgba(229, 193, 139, 0.25), transparent),
+    radial-gradient(1px 1px at 1720px 680px, rgba(165, 200, 255, 0.25), transparent);
+  background-size: 1920px 800px;
+  opacity: 0.55;
+  z-index: 0;
 }
 
-.top-bar > * {
-  pointer-events: auto;
-}
-
-.app-title {
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-}
-
-.badge.fps {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.3);
-}
-
-.badge.state {
-  color: #f8fafc;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.badge.vad-active {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.4);
-}
-
-/* Sphere canvas container */
-.sphere-container {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-}
-
-/* Floating Control Panel */
-.control-dock {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(920px, calc(100vw - 32px));
-  max-height: 42vh;
-  overflow-y: auto;
-  z-index: 20;
-  background: rgba(10, 14, 26, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
-  border-radius: 16px;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-}
-
-.dock-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.dock-label {
-  font-size: 0.75rem;
-  font-weight: 600;
+/* Main Call To Action Button (Start / Stop Mic): Electric blue primary with starlight text */
+.btn-cta-mic {
+  cursor: pointer;
+  border: 1px solid var(--space-blue);
+  background: var(--space-blue);
+  color: #FFFFFF;
+  font-family: var(--font-hud);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #94a3b8;
-  min-width: 90px;
-}
-
-.dock-group {
+  padding: 9px 18px;
+  border-radius: 4px;
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  flex-wrap: wrap;
-  flex: 1;
+  box-shadow: 0 0 14px rgba(71, 127, 245, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
+.btn-cta-mic:hover {
+  background: #5b8ff7;
+  border-color: var(--space-cyan);
+  box-shadow: 0 0 20px rgba(98, 201, 232, 0.40);
+  transform: translateY(-1px);
+}
+
+.btn-cta-mic:active {
+  transform: translateY(0);
+}
+
+.btn-cta-mic.mic-active {
+  background: var(--space-blue-deep);
+  color: var(--space-star);
+  border: 1px solid var(--space-cyan);
+  box-shadow: 0 0 18px rgba(98, 201, 232, 0.35);
+}
+
+.btn-cta-mic.mic-active:hover {
+  background: #2b56ba;
+  box-shadow: 0 0 24px rgba(98, 201, 232, 0.45);
+}
+
+/* Standard Buttons: Secondary buttons translucent nebula surface with stellar borders */
 button {
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
+  border: 1px solid var(--space-border);
+  background: var(--space-navy-85);
+  color: var(--space-text-secondary);
   padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
   font-weight: 500;
-  transition: all 0.15s ease-in-out;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 button:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  background: var(--space-surface-elevated);
+  border-color: var(--space-blue-deep);
+  color: var(--space-star);
 }
 
 button.active {
-  background: #ffffff;
-  color: #05070f;
-  border-color: #ffffff;
+  background: var(--space-blue);
+  color: #FFFFFF;
+  border-color: var(--space-cyan);
   font-weight: 600;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 12px rgba(71, 127, 245, 0.35);
 }
 
-button.primary {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
+/* Translucent nebula surface panels with 1px stellar borders (#202D4D) */
+.space-card {
+  background: var(--space-navy-90);
+  border: 1px solid var(--space-border);
+  border-radius: 6px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-button.primary:hover {
-  background: rgba(56, 189, 248, 0.3);
-  color: #e0f2fe;
+.space-card:hover {
+  background: var(--space-surface-elevated);
+  border-color: var(--space-blue-deep);
+  box-shadow: 0 4px 16px rgba(2, 3, 11, 0.6);
 }
 
-button.decision-noise, button.decision-small {
-  border-color: rgba(34, 197, 94, 0.4);
-  color: #4ade80;
-}
-
-button.decision-noise:hover, button.decision-small:hover {
-  background: rgba(34, 197, 94, 0.2);
-}
-
-button.decision-interrupt {
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #f87171;
-}
-
-button.decision-interrupt:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-button.decision-unclear {
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
-}
-
-button.decision-unclear:hover {
-  background: rgba(245, 158, 11, 0.2);
-}
-
-/* Mic level meter */
-.meter-container {
-  width: 90px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-}
-
-.meter-bar {
-  height: 100%;
-  background: #38bdf8;
-  transition: width 0.05s linear;
-  border-radius: 4px;
-}
-
-.meter-bar.active {
-  background: #22c55e;
-}
-
-/* Custom Thin Sidebar Scrollbar (.sidebar-scroll) */
+/* Slim Styled Scrollbar */
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(10, 15, 30, 0.5);
+  scrollbar-color: var(--space-border) var(--space-navy);
 }
 
 .sidebar-scroll::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .sidebar-scroll::-webkit-scrollbar-track {
-  background: rgba(10, 15, 30, 0.5);
-  border-radius: 9999px;
+  background: var(--space-navy);
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 9999px;
+  background: var(--space-border);
+  border-radius: 4px;
 }
 
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--space-blue);
 }
 
-/* Sidebar Card Hover & Animation */
-.sidebar-card {
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+/* Status Pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  height: 26px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: var(--space-navy-90);
+  border: 1px solid var(--space-border);
+  color: var(--space-star);
+  user-select: none;
+  font-family: var(--font-hud);
 }
 
-.sidebar-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+.status-pill .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-/* Stage Canvas Wrapper */
-.stage-canvas-wrapper canvas {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
+/* Decision Rings / Triggers */
+button.decision-noise,
+button.decision-small,
+button.decision-go-on {
+  border-color: var(--decision-green-border);
+  color: var(--decision-green);
+}
+button.decision-noise:hover,
+button.decision-small:hover,
+button.decision-go-on:hover {
+  background: var(--decision-green-bg);
 }
 
+button.decision-interrupt {
+  border-color: var(--decision-red-border);
+  color: var(--decision-red);
+}
+button.decision-interrupt:hover {
+  background: var(--decision-red-bg);
+}
 
+button.decision-unclear {
+  border-color: var(--decision-amber-border);
+  color: var(--decision-amber);
+}
+button.decision-unclear:hover {
+  background: var(--decision-amber-bg);
+}
+
+/* Reduced motion preference support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

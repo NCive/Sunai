@@ -31,19 +31,19 @@ export function SlideFrame({
       <div className="hud-corner-bracket hud-corner-bl m-4 sm:m-6" />
       <div className="hud-corner-bracket hud-corner-br m-4 sm:m-6" />
 
-      {/* Slide Header with Tiny Uppercase Label & Short Mint Line */}
+      {/* Slide Header with Tiny Uppercase Label & Short Star Line */}
       <div className="w-full max-w-6xl mx-auto z-10 pt-2 flex-shrink-0">
         <div className="flex items-center gap-2.5 mb-1.5">
-          <span className="w-4 h-[1px] bg-[#D1E8E2]/60" />
-          <span className="text-[10px] font-mono tracking-deck-wide text-[#D1E8E2]/70 uppercase">
+          <span className="w-4 h-[1px] bg-[#A1AFCE]/60" />
+          <span className="text-[10px] font-mono tracking-deck-wide text-[#A1AFCE] uppercase">
             {sectionLabel}
           </span>
         </div>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-light tracking-deck-wide text-[#D1E8E2] uppercase">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-light tracking-deck-wide text-[#EAF0FF] uppercase">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-xs sm:text-sm text-[#A3C8BF] mt-1 max-w-3xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#A1AFCE] mt-1 max-w-3xl leading-relaxed">
             {subtitle}
           </p>
         )}
@@ -59,4 +59,3 @@ export function SlideFrame({
     </div>
   );
 }
-

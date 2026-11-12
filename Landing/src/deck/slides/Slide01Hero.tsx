@@ -31,8 +31,8 @@ export function Slide01Hero({ onOpenOfflineModal, isOnline, hasScrolled }: Slide
       {/* Slide Top Sub-Header */}
       <div className="w-full max-w-6xl mx-auto z-10 pt-4 flex-shrink-0">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-4 h-[1px] bg-[#D1E8E2]/60" />
-          <span className="text-[10px] font-mono tracking-deck-wide text-[#D1E8E2]/70 uppercase">
+          <span className="w-4 h-[1px] bg-[#A1AFCE]/60" />
+          <span className="text-[10px] font-mono tracking-deck-wide text-[#A1AFCE] uppercase">
             01 / INTRODUCTION
           </span>
         </div>
@@ -40,17 +40,17 @@ export function Slide01Hero({ onOpenOfflineModal, isOnline, hasScrolled }: Slide
 
       {/* Hero Center Presentation */}
       <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center my-auto z-10 space-y-5">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm deck-card border border-[#116466] text-[11px] font-mono text-[#FFCB9A] w-fit">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm deck-card border border-[#202D4D] text-[11px] font-mono text-[#E5C18B] w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-[#2FD3A5] animate-pulse" />
           <span>{content.hero.brandMeaning}</span>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-deck-wide text-[#D1E8E2] uppercase leading-[1.15]">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-light tracking-deck-wide text-[#EAF0FF] uppercase leading-[1.15]">
           Most voice bots either talk over you or stop for every sound.{' '}
-          <span className="text-[#FFCB9A] font-normal">Sunai fixes the timing.</span>
+          <span className="text-[#E5C18B] font-normal">Sunai fixes the timing.</span>
         </h1>
 
-        <p className="text-sm sm:text-base text-[#A3C8BF] max-w-2xl leading-relaxed">
+        <p className="text-sm sm:text-base text-[#A1AFCE] max-w-2xl leading-relaxed">
           {content.hero.subline}
         </p>
 
@@ -60,7 +60,7 @@ export function Slide01Hero({ onOpenOfflineModal, isOnline, hasScrolled }: Slide
             href={content.assistantUrl}
             onClick={handleAssistantClick}
             aria-label="Open the Sunai voice assistant"
-            className="inline-flex items-center gap-2 px-6 py-3 text-xs font-mono tracking-wider uppercase bg-[#FFCB9A] text-[#070F0D] hover:bg-[#D9B08C] font-semibold transition-all shadow-[0_0_20px_rgba(255,203,154,0.3)]"
+            className="inline-flex items-center gap-2 px-6 py-3 text-xs font-mono tracking-wider uppercase bg-[#477FF5] text-white hover:bg-[#5b8ef7] font-semibold transition-all shadow-[0_0_16px_rgba(71,127,245,0.4)]"
           >
             <span>{content.hero.primaryCta}</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -68,10 +68,10 @@ export function Slide01Hero({ onOpenOfflineModal, isOnline, hasScrolled }: Slide
 
           <a
             href="#problem"
-            className="inline-flex items-center gap-2 px-5 py-3 text-xs font-mono tracking-wider uppercase deck-card text-[#D1E8E2] hover:text-white hover:border-[#D1E8E2] transition-all"
+            className="inline-flex items-center gap-2 px-5 py-3 text-xs font-mono tracking-wider uppercase bg-transparent border border-[#202D4D] text-[#A1AFCE] hover:bg-[#111B35] hover:text-[#EAF0FF] transition-all rounded-sm"
           >
             <span>{content.hero.secondaryCta}</span>
-            <ArrowDown className="w-3.5 h-3.5 text-[#FFCB9A]" />
+            <ArrowDown className="w-3.5 h-3.5 text-[#A1AFCE]" />
           </a>
         </div>
 
@@ -80,7 +80,7 @@ export function Slide01Hero({ onOpenOfflineModal, isOnline, hasScrolled }: Slide
           {content.hero.chips.map((chip, idx) => (
             <span
               key={idx}
-              className="text-[11px] font-mono px-2.5 py-1 bg-[#116466]/20 border border-[#116466]/50 text-[#D1E8E2]"
+              className="text-[11px] font-mono px-2.5 py-1 bg-[#0A1024] border border-[#202D4D] text-[#EAF0FF]"
             >
               {chip}
             </span>
@@ -90,7 +90,7 @@ export function Slide01Hero({ onOpenOfflineModal, isOnline, hasScrolled }: Slide
 
       {/* Bottom Scroll Prompt */}
       <div
-        className={`w-full max-w-6xl mx-auto flex items-center justify-between text-[10px] font-mono text-[#A3C8BF]/60 transition-opacity duration-500 ${
+        className={`w-full max-w-6xl mx-auto flex items-center justify-between text-[10px] font-mono text-[#647394] transition-opacity duration-500 ${
           hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
@@ -102,4 +102,3 @@ export function Slide01Hero({ onOpenOfflineModal, isOnline, hasScrolled }: Slide
     </div>
   );
 }
-

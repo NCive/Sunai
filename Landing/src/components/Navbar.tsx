@@ -56,7 +56,7 @@ export function Navbar({ isOnline, onOpenOfflineModal }: NavbarProps) {
         isVisible ? 'translate-y-0' : '-translate-y-full'
       } ${
         isScrolled
-          ? 'bg-[#07080c]/80 backdrop-blur-md border-b border-white/10 py-3 shadow-lg'
+          ? 'bg-[#02030B]/80 backdrop-blur-md border-b border-white/10 py-3 shadow-lg'
           : 'bg-transparent py-5'
       }`}
     >
@@ -119,7 +119,7 @@ export function Navbar({ isOnline, onOpenOfflineModal }: NavbarProps) {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden glass-card border-b border-white/10 bg-[#07080c]/95 px-4 pt-3 pb-6 space-y-3">
+        <div className="md:hidden glass-card border-b border-white/10 bg-[#0A1024]/95 px-4 pt-3 pb-6 space-y-3">
           <div className="flex flex-col space-y-2">
             {content.navItems.map((item) => (
               <a

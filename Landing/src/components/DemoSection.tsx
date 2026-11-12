@@ -32,7 +32,7 @@ export function DemoSection({ isOnline, onOpenOfflineModal }: DemoSectionProps) 
   };
 
   return (
-    <section id="demo" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#07080d]">
+    <section id="demo" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#02030B]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -54,7 +54,7 @@ export function DemoSection({ isOnline, onOpenOfflineModal }: DemoSectionProps) 
             
             {hasVideoError ? (
               /* Polished Fallback Presentation */
-              <div className="aspect-video w-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-[#0a0c16] to-[#06070a] relative">
+              <div className="aspect-video w-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-[#0A1024] to-[#02030B] relative">
                 <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 text-accent-blue">
                   <Play className="w-6 h-6 ml-1" />
                 </div>
@@ -98,7 +98,7 @@ export function DemoSection({ isOnline, onOpenOfflineModal }: DemoSectionProps) 
             )}
 
             {/* Video Caption Note */}
-            <div className="p-4 sm:p-5 border-t border-white/10 bg-[#090b14] flex items-start sm:items-center gap-3 text-left">
+            <div className="p-4 sm:p-5 border-t border-white/10 bg-[#0A1024] flex items-start sm:items-center gap-3 text-left">
               <Info className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5 sm:mt-0" />
               <p className="text-xs text-zinc-400 leading-relaxed font-mono">
                 {content.demo.note}
@@ -108,7 +108,7 @@ export function DemoSection({ isOnline, onOpenOfflineModal }: DemoSectionProps) 
         </div>
 
         {/* Run It Yourself 3-Step Strip */}
-        <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl glass-card border border-white/10 bg-[#090b14] text-left mb-12">
+        <div className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl glass-card border border-white/10 bg-[#0A1024] text-left mb-12">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
             <div>
               <h3 className="text-lg font-heading font-semibold text-white">

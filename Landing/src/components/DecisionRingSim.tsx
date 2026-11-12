@@ -18,11 +18,11 @@ export function DecisionRingSim() {
   const getRingColor = () => {
     switch (activeScenario.color) {
       case 'green':
-        return '#10b981';
+        return '#2FD3A5';
       case 'red':
-        return '#ef4444';
+        return '#FF6A5C';
       case 'amber':
-        return '#f59e0b';
+        return '#FFD166';
       default:
         return '#2FD3A5';
     }
@@ -42,7 +42,7 @@ export function DecisionRingSim() {
   };
 
   return (
-    <section id="simulation" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#07080d]">
+    <section id="simulation" className="py-24 relative overflow-hidden border-t border-white/5 bg-[#02030B]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -59,7 +59,7 @@ export function DecisionRingSim() {
         </div>
 
         {/* Interactive Simulator Shell */}
-        <div className="max-w-4xl mx-auto p-6 sm:p-10 rounded-3xl glass-card border border-white/10 shadow-2xl relative overflow-hidden bg-[#090b14]">
+        <div className="max-w-4xl mx-auto p-6 sm:p-10 rounded-3xl glass-card border border-white/10 shadow-2xl relative overflow-hidden bg-[#0A1024]">
           
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-4 border-b border-white/10">
             <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
@@ -127,7 +127,7 @@ export function DecisionRingSim() {
 
                 {/* Inner status dot */}
                 <div
-                  className={`absolute w-28 h-28 rounded-full flex flex-col items-center justify-center bg-[#07080d] border border-white/10 transition-all duration-300 ${getGlowShadow()}`}
+                  className={`absolute w-28 h-28 rounded-full flex flex-col items-center justify-center bg-[#050817] border border-white/10 transition-all duration-300 ${getGlowShadow()}`}
                 >
                   <div
                     className="w-4 h-4 rounded-full mb-1 transition-colors duration-300"

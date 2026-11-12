@@ -16,11 +16,11 @@ export function Slide15Team() {
           {content.team.members.map((member) => (
             <div
               key={member.name}
-              className="p-4 rounded-sm deck-card border border-[#116466]/40 flex flex-col justify-between"
+              className="p-4 rounded-sm deck-card border border-[#202D4D] flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#116466]/20 border border-[#116466]/40 text-[#D1E8E2]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#111B35] border border-[#202D4D] text-[#EAF0FF]">
                     {member.role}
                   </span>
                   {member.link ? (
@@ -28,26 +28,26 @@ export function Slide15Team() {
                       href={member.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#A3C8BF] hover:text-[#FFCB9A] p-1 rounded hover:bg-[#116466]/20 transition-colors"
+                      className="text-[#A1AFCE] hover:text-[#E5C18B] p-1 rounded hover:bg-[#111B35] transition-colors"
                       aria-label={`${member.name} LinkedIn Profile`}
                     >
                       <Linkedin className="w-4 h-4" />
                     </a>
                   ) : (
-                    <span className="text-[10px] font-mono text-[#A3C8BF]/60">Co-Creator</span>
+                    <span className="text-[10px] font-mono text-[#647394]">Co-Creator</span>
                   )}
                 </div>
 
-                <h3 className="text-base font-heading font-medium tracking-wide uppercase text-[#D1E8E2] mb-1">
+                <h3 className="text-base font-heading font-medium tracking-wide uppercase text-[#EAF0FF] mb-1">
                   {member.name}
                 </h3>
 
-                <p className="text-xs text-[#A3C8BF] leading-relaxed">
+                <p className="text-xs text-[#A1AFCE] leading-relaxed">
                   {member.contribution}
                 </p>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-[#116466]/30 text-[9px] font-mono text-[#A3C8BF]/60">
+              <div className="mt-3 pt-2 border-t border-[#202D4D] text-[9px] font-mono text-[#647394]">
                 Gnani.ai Internship Challenge Contributor
               </div>
             </div>
@@ -55,13 +55,13 @@ export function Slide15Team() {
         </div>
 
         {/* Acknowledgments & Hashtags */}
-        <div className="max-w-4xl mx-auto p-3 rounded-sm deck-card border border-[#116466]/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
-          <div className="flex items-center gap-2 text-[#D1E8E2]">
+        <div className="max-w-4xl mx-auto p-3 rounded-sm deck-card border border-[#202D4D] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 text-[#EAF0FF]">
             <Heart className="w-3.5 h-3.5 text-[#FF6A5C]" />
             <span>Special thanks to Gnani.ai</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-[#FFCB9A]">
-            <Award className="w-3 h-3 text-[#FFCB9A]" />
+          <div className="flex items-center gap-1.5 text-[10px] text-[#E5C18B]">
+            <Award className="w-3 h-3 text-[#E5C18B]" />
             <span>#GreatIndianAIInternshipChallenge</span>
           </div>
         </div>
@@ -70,7 +70,7 @@ export function Slide15Team() {
           {content.team.hashtags.map((tag, idx) => (
             <span
               key={idx}
-              className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#116466]/20 border border-[#116466]/30 text-[#A3C8BF]"
+              className="text-[10px] font-mono px-2 py-0.5 rounded-sm bg-[#111B35] border border-[#202D4D] text-[#A1AFCE]"
             >
               {tag}
             </span>
@@ -80,4 +80,3 @@ export function Slide15Team() {
     </SlideFrame>
   );
 }
-

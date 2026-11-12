@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronDownIcon } from './Icons';
 
 export interface SidebarCardProps {
   title: string;
@@ -38,17 +39,15 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
     }
   };
 
-  const transitionStyle = reduceMotion ? 'none' : 'all 0.2s ease-in-out';
+  const transitionStyle = reduceMotion ? 'none' : 'transform 0.2s ease, border-color 0.2s ease';
 
   return (
     <div
-      className={`sidebar-card ${className}`}
+      className={`space-card sidebar-card ${className}`}
       style={{
-        background: 'rgba(15, 23, 42, 0.75)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        backdropFilter: 'blur(10px)',
+        background: 'var(--space-navy-88)',
+        border: '1px solid var(--space-blue-70)',
+        borderRadius: '6px',
         transition: transitionStyle,
         ...style,
       }}
@@ -57,6 +56,7 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
         onClick={handleToggle}
         role="button"
         tabIndex={0}
+        aria-expanded={!isCollapsed}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -67,58 +67,60 @@ export const SidebarCard: React.FC<SidebarCardProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '10px 14px',
+          height: '40px',
+          padding: '0 12px',
           cursor: 'pointer',
           userSelect: 'none',
-          borderBottom: isCollapsed ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
-          background: isCollapsed ? 'transparent' : 'rgba(255, 255, 255, 0.02)',
+          borderRadius: isCollapsed ? '5px' : '5px 5px 0 0',
+          borderBottom: isCollapsed ? 'none' : '1px solid var(--space-blue-40)',
+          background: isCollapsed ? 'transparent' : 'var(--space-blue-20)',
+          transition: 'background 0.15s ease',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {icon && <span style={{ fontSize: '0.95rem', display: 'flex' }}>{icon}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+          {icon && (
+            <span style={{ display: 'flex', alignItems: 'center', color: 'var(--space-star)', flexShrink: 0 }}>
+              {icon}
+            </span>
+          )}
           <span
             style={{
-              fontSize: '0.8rem',
+              fontFamily: 'var(--font-hud)',
+              fontSize: '0.74rem',
               fontWeight: 600,
-              letterSpacing: '0.04em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: '#e2e8f0',
+              color: 'var(--space-star)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {title}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           {headerRight && <div onClick={(e) => e.stopPropagation()}>{headerRight}</div>}
           <span
             style={{
-              fontSize: '0.75rem',
-              color: '#94a3b8',
+              display: 'flex',
+              alignItems: 'center',
+              color: 'var(--space-star-70)',
               transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
               transition: reduceMotion ? 'none' : 'transform 0.2s ease',
-              display: 'inline-block',
             }}
-            title={isCollapsed ? 'Expand card' : 'Collapse card'}
           >
-            ▼
+            <ChevronDownIcon size={14} />
           </span>
         </div>
       </div>
 
       {!isCollapsed && (
-        <div
-          style={{
-            padding: '12px 14px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-          }}
-        >
+        <div style={{ padding: '12px' }}>
           {children}
         </div>
       )}
     </div>
   );
 };
-
