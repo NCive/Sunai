@@ -18,7 +18,7 @@ BACKCHANNEL_WORDS: Set[str] = {
     # English Roman
     "ok", "okay", "o.k.", "okey", "k", "hmm", "hm", "mm", "mhm", "uh huh", "uh-huh",
     "yes", "yeah", "yep", "yup", "sure", "right", "alright", "got it", "i see",
-    "understood", "fine", "cool", "great", "perfect",
+    "understood", "fine", "cool", "great", "perfect", "nice", "makes sense", "i get it",
 
     # Hindi / Hinglish Roman
     "haan", "han", "haa", "ha", "ji", "haan ji", "haaji", "hanji", "accha", "achha",
@@ -29,10 +29,18 @@ BACKCHANNEL_WORDS: Set[str] = {
     "barobar", "hoy", "hoy ji", "bara", "theek aahe", "thik ahe", "samajla",
     "ho", "ho ka",
 
-    # Devanagari (Hindi & Marathi)
+    # Devanagari (Hindi)
     "हाँ", "हां", "हूँ", "हूं", "जी", "अच्छा", "ठीक है", "ठीक", "हम्म", "ओके",
-    "बरोबर", "होय", "बरं", "ठीक आहे", "समझ गया", "समझ गयी", "समजलं",
-    "हो", "सही", "सही है", "अच्छा जी", "हांजी",
+    "समझ गया", "समझ गयी", "सही", "सही है", "अच्छा जी", "हांजी", "हा", "हां जी", 
+    "जी हाँ", "जी हां", "अच्छा", "बिल्कुल", "बिलकुल", "समझा", "ओके", "ओके जी",
+
+    #Marathi (Devanagari)
+    "हो", "होय", "बरोबर", "हो बरोबर", "अगदी बरोबर", "बरोबर आहे", "ठीक आहे", "बरं",
+    "बरं आहे", "अच्छा", "समजलं", "समजले", "कळलं", "कळले", "चालेल", "मस्त", "भारी", "ओके",
+
+    #NON_LEXICAL_SOUNDS (sounds, not words)
+    "hm", "hmmm", "mm", "mmm", "mhm", "hnn", "hn", "uhh", "umm", "aa", "aaa", 
+    "हम्म", "हँ", "हं", "ऊं", "उं", "अं", "अँ", "आ", "एं",
 }
 
 # GO_ON (continuation -> resume / play saved remaining sentences)

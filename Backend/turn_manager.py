@@ -7,15 +7,21 @@ unclear speech escalation ("ji?"), and idle check / sleep / wake transitions.
 
 import asyncio
 import base64
+import json
 import logging
 import math
 import struct
 import time
-from typing import Any, Callable, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from Backend import config
 from Backend.audio_cache_manager import get_cached_audio
-from Backend.interruption import InterruptionHandler
+from Backend.interruption import (
+    InterruptionHandler,
+    normalize_text,
+    is_reaction_utterance,
+    is_go_on_utterance,
+)
 from Backend.state_machine import SunaiStateMachine
 from Backend.metrics import get_metrics_manager
 
@@ -52,12 +58,15 @@ class TurnManager:
         mode: str = "pause_first",
         on_interruption: Optional[Callable[[], Any]] = None,
         metrics_manager: Optional[Any] = None,
+        has_unplayed_continuation: Optional[Callable[[], bool]] = None,
     ):
         self.sm = state_machine
         self.send_event = send_event
         self.mode = mode  # 'pause_first' or 'baseline'
         self.on_interruption = on_interruption
         self.metrics_manager = metrics_manager or get_metrics_manager()
+        self.has_unplayed_continuation = has_unplayed_continuation
+        self.speech_onset_state: Optional[str] = None
 
         # Interruption classifier & handler
         self.interruption_handler = InterruptionHandler()
@@ -65,6 +74,7 @@ class TurnManager:
 
         # User turn tracking
         self.turn_id = 0
+        self.interrupted: bool = False
         self.has_new_speech: bool = False
         self.has_final_transcript: bool = False
         self.last_finalized_text: str = ""
@@ -78,6 +88,14 @@ class TurnManager:
         self.paused_energy_samples: List[float] = []
         self.paused_start_time: float = 0.0
         self.last_vad_meta: Dict[str, float] = {"duration_ms": 0.0, "peak": 0.0, "rms": 0.0, "speech_probability": 1.0}
+
+        # Barge-in decision window tracking
+        self.is_voice_active: bool = False
+        self.last_vad_end_monotonic: Optional[float] = None
+        self.t_vad_start: Optional[float] = None
+        self.t_vad_end: Optional[float] = None
+        self.t_first_partial_text: Optional[float] = None
+        self.evaluated_interruption_texts: Set[str] = set()
 
         # Bot speech and sentence tracking
         self.bot_sentences: List[str] = []
@@ -118,12 +136,63 @@ class TurnManager:
         clean = text.strip()
         return len(clean) >= config.TEXT_FINISHED_MIN_CHARS
 
+    def is_text_evaluated(self, text: str) -> bool:
+        """Checks if text was already evaluated during a pause window to prevent safety-net stutter."""
+        norm = normalize_text(text)
+        if not norm:
+            return True
+        if norm in self.evaluated_interruption_texts:
+            return True
+        for evaluated in self.evaluated_interruption_texts:
+            if norm == evaluated or norm.startswith(evaluated) or evaluated.startswith(norm):
+                return True
+        return False
+
+    def _write_interruption_log(
+        self,
+        t_vad_start: Optional[float],
+        t_first_partial: Optional[float],
+        t_vad_end: Optional[float],
+        t_decision: float,
+        window_total_ms: float,
+        decision: str,
+        reason: str,
+        voice_duration_sec: float,
+        text: str = "",
+        action_taken: str = "",
+    ) -> None:
+        """Writes one structured JSON record to Backend/logs/interruptions.jsonl."""
+        record = {
+            "t_vad_start": round(t_vad_start, 4) if t_vad_start is not None else None,
+            "t_first_partial_text": round(t_first_partial, 4) if t_first_partial is not None else None,
+            "t_vad_end": round(t_vad_end, 4) if t_vad_end is not None else None,
+            "t_decision": round(t_decision, 4),
+            "window_total_ms": round(window_total_ms, 1),
+            "decision": decision,
+            "reason": reason,
+            "voice_duration_sec": round(voice_duration_sec, 3),
+            "turn_id": self.turn_id,
+            "mode": self.mode,
+            "classification": decision,
+            "user_text": text,
+            "time_to_pause_ms": round(window_total_ms, 1),
+            "action_taken": action_taken,
+        }
+        try:
+            log_path = getattr(config, "INTERRUPTIONS_LOG_FILE", config.METRICS_LOG_DIR / "interruptions.jsonl")
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record) + "\n")
+        except Exception as e:
+            logger.warning(f"[TurnManager] Error writing to interruptions.jsonl: {e}")
+
     def on_turn_started(self, turn_id: int) -> None:
         """Initializes per-turn sentence tracking when generation begins."""
         self.active_turn_id = turn_id
         self.turn_is_last_sent = False
         self.turn_last_sentence_id = None
         self.played_sentences.clear()
+        self.evaluated_interruption_texts.clear()
         logger.info(f"[TurnManager] Started tracking answer sentences for turn_id={turn_id}")
 
     def set_turn_last_sentence(self, turn_id: int, last_sentence_id: int) -> None:
@@ -193,6 +262,9 @@ class TurnManager:
             f"duration={duration_ms:.1f}ms, peak={peak:.3f}, RMS={rms:.4f}, speech_prob={speech_probability:.2f}"
         )
 
+        if self.speech_onset_state is None:
+            self.speech_onset_state = current_state
+
         if self.user_speech_start is None:
             self.user_speech_start = now
         self.last_audio_time = now
@@ -220,6 +292,13 @@ class TurnManager:
             self.sm.transition_to("LISTENING", reason="user_speech_onset")
             return
 
+        elif current_state == "PAUSED":
+            logger.info("[TurnManager] vad_start received while already PAUSED. Keeping same window, marking voice active.")
+            self.is_voice_active = True
+            self.last_vad_end_monotonic = None
+            self.t_vad_end = None
+            return
+
         # Interruption flow: User spoke while bot is speaking
         if current_state == "SPEAKING":
             self.interrupted = True
@@ -227,12 +306,14 @@ class TurnManager:
             if self.mode == "baseline":
                 # Baseline mode: Immediate hard stop
                 logger.info("[TurnManager] [Baseline] Hard stop on voice. Clearing queue.")
+                self.interrupted = True
                 if self.on_interruption:
                     res = self.on_interruption()
                     if asyncio.iscoroutine(res):
                         await res
                 self.sm.transition_to("LISTENING", reason="baseline_hard_stop")
                 await asyncio.sleep(0)
+                logger.info(f"[TurnManager] clear_queue sent: turn_id={self.turn_id}")
                 await self.send_event("clear_queue", {"turn_id": self.turn_id})
                 await self.send_event("decision", {"decision": "interruption", "text": "[baseline]"})
 
@@ -241,8 +322,13 @@ class TurnManager:
                 return
 
             # Pause-First mode:
-            # Pause audio immediately and start classification window (300-500 ms)
+            # Pause audio immediately and start classification window
             logger.info("[TurnManager] [Pause-First] Pausing bot audio immediately.")
+            self.is_voice_active = True
+            self.last_vad_end_monotonic = None
+            self.t_vad_start = now
+            self.t_vad_end = None
+            self.t_first_partial_text = None
             self.paused_start_time = now
             self.paused_energy_samples = []
             self.sm.transition_to("PAUSED", reason="pause_first_voice_start")
@@ -265,8 +351,12 @@ class TurnManager:
         self.last_audio_time = now
         self.on_turn_complete_cb = on_turn_complete
 
-        # If in PAUSED state, decision logic handles resolution
+        # If in PAUSED state, store monotonic timestamp and mark voice inactive; window handles resolution
         if current_state == "PAUSED":
+            logger.info("[TurnManager] vad_end received in state=PAUSED. Marking voice inactive and recording monotonic timestamp.")
+            self.is_voice_active = False
+            self.last_vad_end_monotonic = time.monotonic()
+            self.t_vad_end = now
             return
 
         if self.silence_timer_task and not self.silence_timer_task.done():
@@ -326,7 +416,36 @@ class TurnManager:
         self.user_speech_start = None
         self.has_new_speech = False
         self.has_final_transcript = False
+        self.evaluated_interruption_texts.clear()
         self.turn_id += 1
+
+        onset_state = self.speech_onset_state
+        self.speech_onset_state = None
+
+        if getattr(self, "interrupted", False):
+            self.interrupted = False
+            logger.info(f"[TurnManager] clear_queue sent: turn_id={self.turn_id}")
+            await self.send_event("clear_queue", {"turn_id": self.turn_id})
+
+        # Check reaction suppression (Section: Reaction & Empty Go-On Suppression)
+        # Only applies when turn onset was NOT in IDLE_CHECK, WAKE, or SLEEP
+        if onset_state not in ("IDLE_CHECK", "WAKE", "SLEEP"):
+            if is_reaction_utterance(text_to_finalize):
+                logger.info(
+                    f"[TurnManager] Reaction ignored (text='{text_to_finalize}', onset_state={onset_state}, reason='reaction_ignored'). Returning to IDLE."
+                )
+                self.sm.transition_to("IDLE", reason="reaction_ignored")
+                self.start_idle_timer()
+                return
+
+            has_cont = self.has_unplayed_continuation() if self.has_unplayed_continuation else False
+            if is_go_on_utterance(text_to_finalize) and not has_cont:
+                logger.info(
+                    f"[TurnManager] Go-on ignored: nothing to continue (text='{text_to_finalize}', onset_state={onset_state}, reason='go_on_nothing_to_continue'). Returning to IDLE."
+                )
+                self.sm.transition_to("IDLE", reason="go_on_nothing_to_continue")
+                self.start_idle_timer()
+                return
 
         logger.info(
             f"[TurnManager] Finalizing turn_id={self.turn_id}. Buffer len before={buf_len_before}, after={len(self.current_user_text)}, text='{text_to_finalize}'"
@@ -351,26 +470,74 @@ class TurnManager:
 
     async def _evaluate_interruption_window(self) -> None:
         """
-        Waits for Prisma text up to PAUSE_PRISMA_TEXT_WAIT_SEC (1.2s), staying paused.
-        If no text arrives or text is empty/low-confidence noise, classifies as noise and resumes.
-        If real words arrive, classifies into noise, small_sound, go_on, interruption, or unclear.
+        Barge-in decision window (Pause-First mode):
+        1. Keeps existing minimum check time and early exit: if text has >=1 word after min_check_sec, evaluates at once.
+        2. If no text yet, does NOT decide noise at old 500ms; keeps window open while voice is still active (no vad_end).
+        3. When vad_end arrives while PAUSED, stores monotonic timestamp and marks voice inactive.
+        4. After vad_end, waits up to PAUSE_POST_VOICE_TEXT_WAIT_SEC (1.0s) for text.
+        5. If no text arrives by then, decides "noise" and resumes (reason: "no_text_after_voice_end").
+        6. Hard cap at PAUSE_WINDOW_MAX_SEC (5.0s) prevents staying paused indefinitely.
+        7. If voice duration > LONG_VOICE_NO_TEXT_SEC (1.5s) and still no text, logs reason "long_voice_no_text".
+        8. Writes structured record to Backend/logs/interruptions.jsonl.
         """
-        max_wait = getattr(config, "PAUSE_PRISMA_TEXT_WAIT_SEC", 0.50)
         min_check_sec = min(0.35, getattr(config, "PAUSE_FIRST_CHECK_MS", 400) / 1000.0)
-        start_wait = time.time()
+        post_voice_wait = getattr(config, "PAUSE_POST_VOICE_TEXT_WAIT_SEC", 1.0)
+        hard_cap_sec = getattr(config, "PAUSE_WINDOW_MAX_SEC", 5.0)
+
+        start_mono = time.monotonic()
+        reason_override: Optional[str] = None
+
         try:
-            # Poll for Prisma text while paused
-            while time.time() - start_wait < max_wait:
+            # Poll for text and monitor voice end / hard cap
+            while True:
                 if self.sm.get_state() != "PAUSED":
                     return
-                elapsed = time.time() - start_wait
-                # If text has arrived and min_check_sec has elapsed, we can finalize
-                if elapsed >= min_check_sec and self.current_user_text.strip() and len(self.current_user_text.strip().split()) >= 1:
+
+                now_mono = time.monotonic()
+                elapsed_total = now_mono - start_mono
+
+                current_text = self.current_user_text.strip()
+                has_words = bool(current_text and len(current_text.split()) >= 1)
+
+                if has_words and self.t_first_partial_text is None:
+                    self.t_first_partial_text = time.time()
+
+                # 1. Early exit: if text has at least 1 word after min_check_sec, evaluate at once
+                if elapsed_total >= min_check_sec and has_words:
                     break
-                await asyncio.sleep(0.04)
+
+                # 2. Hard cap check: at hard_cap_sec (5.0s), break
+                if elapsed_total >= hard_cap_sec:
+                    logger.info(f"[TurnManager] PAUSED window reached hard cap ({hard_cap_sec}s). Deciding.")
+                    if not has_words:
+                        reason_override = "no_text_after_voice_end"
+                    break
+
+                # 3. Post-voice wait check: if vad_end received and post_voice_wait has elapsed
+                if not self.is_voice_active and self.last_vad_end_monotonic is not None:
+                    time_since_vad_end = now_mono - self.last_vad_end_monotonic
+                    if time_since_vad_end >= post_voice_wait:
+                        logger.info(
+                            f"[TurnManager] Post-voice wait expired ({time_since_vad_end:.2f}s >= {post_voice_wait}s after vad_end). Deciding."
+                        )
+                        if not has_words:
+                            reason_override = "no_text_after_voice_end"
+                        break
+
+                await asyncio.sleep(0.02)
 
             if self.sm.get_state() != "PAUSED":
                 return
+
+            t_decision = time.time()
+            window_total_ms = (t_decision - (self.t_vad_start or self.paused_start_time)) * 1000.0
+
+            if self.t_vad_end is not None and self.t_vad_start is not None:
+                voice_duration_sec = max(0.0, self.t_vad_end - self.t_vad_start)
+            elif self.t_vad_start is not None:
+                voice_duration_sec = max(0.0, t_decision - self.t_vad_start)
+            else:
+                voice_duration_sec = max(0.0, time.time() - self.paused_start_time)
 
             text = self.current_user_text.strip()
             avg_energy = (
@@ -378,34 +545,34 @@ class TurnManager:
                 if self.paused_energy_samples
                 else self.last_vad_meta.get("rms", 0.05)
             )
-            duration = max(0.0, time.time() - self.paused_start_time)
-            vad_dur = self.last_vad_meta.get("duration_ms", 0.0)
-            min_voice_sec = getattr(config, "LIGHT_NOISE_MIN_VOICE_DURATION_MS", 80) / 1000.0
+
+            long_voice_threshold = getattr(config, "LONG_VOICE_NO_TEXT_SEC", 1.5)
 
             if self.stub_override and config.ENABLE_STUB_DECISIONS:
                 decision = self.stub_override
                 reason = "stub_override"
             elif not text:
-                # Mild check: if sound ended before min_voice_sec (80ms) or burst of noise returned no words from STT,
-                # resume silently as "noise" (no "ji?")
                 decision = "noise"
-                min_voice_ms = getattr(config, "LIGHT_NOISE_MIN_VOICE_DURATION_MS", 80)
-                if duration < min_voice_sec or (0 < vad_dur < min_voice_ms):
-                    reason = "light_noise_short_sound_no_text"
+                if voice_duration_sec > long_voice_threshold:
+                    reason = "long_voice_no_text"
                 else:
-                    reason = "light_noise_burst_no_text"
+                    reason = reason_override or "no_text_after_voice_end"
             else:
                 # Any text with at least one real word must go through the keyword classifier
                 decision, reason = self.interruption_handler.evaluate(
                     text=text,
                     has_voice=True,
                     rms_energy=avg_energy,
-                    duration_sec=duration,
+                    duration_sec=voice_duration_sec,
                 )
 
+            # Remember evaluated text to prevent safety-net stutter
+            if text:
+                self.evaluated_interruption_texts.add(normalize_text(text))
+
             logger.info(
-                f"[Interruption Diagnostic] vad_start eval | duration={duration:.2f}s, "
-                f"RMS={avg_energy:.4f}, prisma_text='{text}', classification={decision} ({reason})"
+                f"[Interruption Diagnostic] vad_start eval | duration={voice_duration_sec:.2f}s, "
+                f"window_total={window_total_ms:.1f}ms, RMS={avg_energy:.4f}, prisma_text='{text}', classification={decision} ({reason})"
             )
 
             action_taken = "resumed"
@@ -415,20 +582,22 @@ class TurnManager:
                 if decision == "noise":
                     self.metrics_manager.record_noise_resumed(self.mode)
 
+                self.current_user_text = ""
                 await self.send_event("decision", {"decision": decision, "reason": reason, "text": text})
                 self.sm.transition_to("SPEAKING", reason=f"pause_first_resume_{decision}")
                 await asyncio.sleep(0)
+                logger.info("[TurnManager] resume sent")
                 await self.send_event("resume", {})
 
             elif decision == "interruption":
                 # Real interruption: stop playback, clear queue
                 action_taken = "stopped"
+                self.interrupted = True
                 if self.on_interruption:
                     res = self.on_interruption()
                     if asyncio.iscoroutine(res):
                         await res
-                await self.send_event("decision", {"decision": "interruption", "reason": reason, "text": text})
-                await self.send_event("clear_queue", {"turn_id": self.turn_id})
+                await self.send_event("decision", {"decision": decision, "reason": reason, "text": text})
 
                 # Check if user has already spoken a finished new question during PAUSED
                 # Pure STOP commands ('wait', 'ruko', 'stop' <= 2 words) switch to LISTENING
@@ -440,6 +609,8 @@ class TurnManager:
                     )
                     await self._finalize_turn(self.on_turn_complete_cb)
                 else:
+                    logger.info(f"[TurnManager] clear_queue sent: turn_id={self.turn_id}")
+                    await self.send_event("clear_queue", {"turn_id": self.turn_id})
                     self.sm.transition_to("LISTENING", reason="real_interruption")
                     await asyncio.sleep(0)
                     if self.has_new_speech and self.on_turn_complete_cb:
@@ -468,11 +639,26 @@ class TurnManager:
                 # Clear queue and listen again
                 self.sm.transition_to("LISTENING", reason="unclear_prompt_listen")
                 await asyncio.sleep(0)
+                logger.info(f"[TurnManager] clear_queue sent: turn_id={self.turn_id}")
                 await self.send_event("clear_queue", {"turn_id": self.turn_id})
+
+            # Structured logging to Backend/logs/interruptions.jsonl
+            self._write_interruption_log(
+                t_vad_start=self.t_vad_start,
+                t_first_partial=self.t_first_partial_text,
+                t_vad_end=self.t_vad_end,
+                t_decision=t_decision,
+                window_total_ms=window_total_ms,
+                decision=decision,
+                reason=reason,
+                voice_duration_sec=voice_duration_sec,
+                text=text,
+                action_taken=action_taken,
+            )
 
             # Log interruption event in metrics and send browser payload
             if self.metrics_manager:
-                time_to_pause = duration * 1000.0 if duration > 0 else config.DEFAULT_TIME_TO_PAUSE_MS
+                time_to_pause = voice_duration_sec * 1000.0 if voice_duration_sec > 0 else config.DEFAULT_TIME_TO_PAUSE_MS
                 self.metrics_manager.record_interruption(
                     turn_id=self.turn_id,
                     mode="pause_first",
@@ -649,6 +835,7 @@ class TurnManager:
         self.user_speech_start = None
         self.has_new_speech = False
         self.has_final_transcript = False
+        self.speech_onset_state = None
         self.interrupted = False
         self.paused_energy_samples = []
         if self.silence_timer_task and not self.silence_timer_task.done():

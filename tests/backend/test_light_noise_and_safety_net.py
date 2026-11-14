@@ -81,9 +81,11 @@ def test_short_click_vs_noise_burst_resumption():
         await tm.on_user_voice_start(duration_ms=50.0, rms=0.20)
         assert sm.get_state() == "PAUSED"
         tm.current_user_text = ""
+        # Browser VAD sends vad_end after voice candidate finishes
+        await tm.on_user_voice_end(None)
 
-        # Check window evaluates
-        await asyncio.sleep(0.55)
+        # Check window evaluates post-voice wait (1.0s)
+        await asyncio.sleep(1.05)
         assert sm.get_state() == "SPEAKING", "Must resume to SPEAKING on fast sound without text"
         assert any(ev == "decision" and p.get("decision") == "noise" for ev, p in events_sent)
         assert any(ev == "resume" for ev, _ in events_sent)
@@ -95,8 +97,9 @@ def test_short_click_vs_noise_burst_resumption():
         await tm.on_user_voice_start(duration_ms=300.0, rms=0.15)
         assert sm.get_state() == "PAUSED"
         tm.current_user_text = ""  # STT produces no words
+        await tm.on_user_voice_end(None)
 
-        await asyncio.sleep(0.55)
+        await asyncio.sleep(1.05)
         assert sm.get_state() == "SPEAKING", "300ms noise burst must resume to SPEAKING"
         assert any(ev == "decision" and p.get("decision") == "noise" for ev, p in events_sent)
         assert not any(ev == "clear_queue" for ev, _ in events_sent), "Must NOT clear queue on noise"

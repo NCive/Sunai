@@ -25,7 +25,12 @@ from Backend.rag.aliases import apply_aliases
 from Backend.history import HistoryManager
 from Backend.llm import QwenClient, build_qwen_prompt, StreamingSentenceSplitter
 from Backend.translate import translate
-from Backend.interruption import classify_utterance, normalize_text
+from Backend.interruption import (
+    classify_utterance,
+    normalize_text,
+    is_reaction_utterance,
+    is_go_on_utterance,
+)
 from Backend.metrics import get_metrics_manager
 
 logger = logging.getLogger(__name__)
@@ -63,6 +68,7 @@ class SunaiConnectionManager:
         self.current_turn_tasks: list[asyncio.Task] = []
         self.clear_ack_event = asyncio.Event()
         self.clear_ack_event.set()  # Initial turn does not wait
+        self.last_cleared_turn_id: int = 0
 
         # State machine with client notification callback
         self.sm = SunaiStateMachine(
@@ -77,6 +83,7 @@ class SunaiConnectionManager:
             mode="pause_first",
             on_interruption=self.on_interruption_stop,
             metrics_manager=self.metrics_manager,
+            has_unplayed_continuation=self.history.has_unplayed_continuation,
         )
 
     def _on_state_changed(self, old_state: str, new_state: str) -> None:
@@ -164,25 +171,30 @@ class SunaiConnectionManager:
             # pause immediately and classify, even if browser VAD did not fire.
             if getattr(config, "SAFETY_NET_SPEAKING_INTERRUPT", True):
                 if self.sm.get_state() == "SPEAKING" and text.strip():
-                    decision, _ = self.turn_manager.interruption_handler.evaluate(
-                        text=text.strip(),
-                        has_voice=True,
-                        rms_energy=0.05,
-                        duration_sec=0.3,
-                    )
-                    if decision in ("interruption", "go_on"):
-                        logger.info(
-                            f"[Safety Net] Prisma STT returned real words '{text.strip()}' while SPEAKING "
-                            f"(decision={decision}) -> triggering immediate pause"
+                    if self.turn_manager.is_text_evaluated(text.strip()):
+                        logger.debug(
+                            f"[Safety Net] Ignoring already-evaluated barge-in text '{text.strip()}'"
                         )
-                        asyncio.create_task(
-                            self.turn_manager.on_user_voice_start(
-                                duration_ms=250.0,
-                                peak=0.5,
-                                rms=0.05,
-                                on_turn_complete=self.on_turn_complete,
+                    else:
+                        decision, _ = self.turn_manager.interruption_handler.evaluate(
+                            text=text.strip(),
+                            has_voice=True,
+                            rms_energy=0.05,
+                            duration_sec=0.3,
+                        )
+                        if decision in ("interruption", "go_on"):
+                            logger.info(
+                                f"[Safety Net] Prisma STT returned real words '{text.strip()}' while SPEAKING "
+                                f"(decision={decision}) -> triggering immediate pause"
                             )
-                        )
+                            asyncio.create_task(
+                                self.turn_manager.on_user_voice_start(
+                                    duration_ms=250.0,
+                                    peak=0.5,
+                                    rms=0.05,
+                                    on_turn_complete=self.on_turn_complete,
+                                )
+                            )
 
         # Start STT session
         self.stt_session = PrismaSTTSession(on_transcript=on_stt_transcript)
@@ -282,7 +294,9 @@ class SunaiConnectionManager:
 
         elif msg_type == "clear_ack":
             ack_turn_id = data.get("turn_id")
-            logger.info(f"[WS] clear_ack received from browser for turn {ack_turn_id}")
+            if ack_turn_id is not None:
+                self.last_cleared_turn_id = max(self.last_cleared_turn_id, int(ack_turn_id))
+            logger.info(f"[WS] clear_ack received: turn_id={ack_turn_id}")
             self.clear_ack_event.set()
 
         elif msg_type == "set_stub_decision":
@@ -312,7 +326,22 @@ class SunaiConnectionManager:
 
         # Module 7: Check if user utterance is a 'go on' continuation command
         norm_text = normalize_text(user_text)
-        is_go_on = (norm_text in config.GO_ON_WORDS) or (classify_utterance(user_text)[0] == "go_on")
+        is_go_on = (norm_text in config.GO_ON_WORDS) or is_go_on_utterance(user_text) or (classify_utterance(user_text)[0] == "go_on")
+
+        # Check reaction suppression (Reaction & Empty Go-On Suppression)
+        onset_state = getattr(self.turn_manager, "speech_onset_state", None)
+        if onset_state not in ("IDLE_CHECK", "WAKE", "SLEEP"):
+            if is_reaction_utterance(user_text):
+                logger.info(f"[WS] Reaction ignored: '{user_text}' (reason='reaction_ignored')")
+                self.sm.transition_to("IDLE", reason="reaction_ignored")
+                self.turn_manager.start_idle_timer()
+                return
+
+            if is_go_on and not self.history.has_unplayed_continuation():
+                logger.info(f"[WS] Go-on ignored: nothing to continue for '{user_text}' (reason='go_on_nothing_to_continue')")
+                self.sm.transition_to("IDLE", reason="go_on_nothing_to_continue")
+                self.turn_manager.start_idle_timer()
+                return
 
         if is_go_on and self.history.has_unplayed_continuation():
             logger.info("[WS] 'Go on' continuation detected! Playing saved unplayed sentences WITHOUT calling LLM.")
@@ -339,6 +368,11 @@ class SunaiConnectionManager:
 
             target_turn, unplayed_sents, unplayed_recs = self.history.get_unplayed_for_continuation()
             if target_turn and unplayed_recs:
+                await self.wait_for_clear_ack(turn_id)
+                if turn_id != self.current_turn_id:
+                    logger.warning(f"[WS] Dropping continuation audio: turn {turn_id} != current {self.current_turn_id}")
+                    return
+
                 if self.sm.get_state() != "SPEAKING":
                     self.sm.transition_to("SPEAKING", reason="go_on_continuation")
                     await asyncio.sleep(0)
@@ -370,6 +404,7 @@ class SunaiConnectionManager:
                     logger.info(
                         f"[WS Audio] Sent clip sentence_id={sent_id}, turn_id={turn_id}, source={source}, is_last={is_last}, text='{sent_text[:40]}...'"
                     )
+                    logger.info(f"[WS] tts_audio sent: turn_id={turn_id}, sentence_id={sent_id}, kind=sentence")
                     await self.send_json({
                         "type": "tts_audio",
                         "turn_id": turn_id,
@@ -448,6 +483,7 @@ class SunaiConnectionManager:
                 f"[WS Audio] Sent clip sentence_id={sentence_id}, turn_id={turn_id}, "
                 f"source=cache_file:{st_match.cache_key}, is_last=True"
             )
+            logger.info(f"[WS] tts_audio sent: turn_id={turn_id}, sentence_id={sentence_id}, kind=sentence")
             await self.send_json({
                 "type": "tts_audio",
                 "turn_id": turn_id,
@@ -521,6 +557,7 @@ class SunaiConnectionManager:
             logger.info(
                 f"[WS Audio] Sent clip sentence_id={sentence_id}, turn_id={turn_id}, source=cache_file:not_in_docs, is_last=True"
             )
+            logger.info(f"[WS] tts_audio sent: turn_id={turn_id}, sentence_id={sentence_id}, kind=sentence")
             await self.send_json({
                 "type": "tts_audio",
                 "turn_id": turn_id,
@@ -561,7 +598,12 @@ class SunaiConnectionManager:
         """Plays 'please wait' filler clip if first sentence takes longer than 1.5s."""
         try:
             await asyncio.sleep(config.FIRST_SENTENCE_WAIT_TIMEOUT_SEC)
-            if not first_sent_event.is_set() and not self.llm_cancel_event.is_set():
+            if not first_sent_event.is_set() and not self.llm_cancel_event.is_set() and turn_id == self.current_turn_id:
+                # Handshake: wait for clear_ack before sending filler
+                await self.wait_for_clear_ack(turn_id)
+                if first_sent_event.is_set() or self.llm_cancel_event.is_set() or turn_id != self.current_turn_id:
+                    return
+
                 logger.info("[WS] First sentence latency exceeded 1.5s. Playing 'please wait' clip.")
                 pw_text = config.CACHE_PHRASES.get("please_wait", {}).get(
                     lang, config.CACHE_PHRASES["please_wait"]["hi-IN"]
@@ -576,6 +618,7 @@ class SunaiConnectionManager:
                 logger.info(
                     f"[WS Audio] Sent filler clip sentence_id=0, turn_id={turn_id}, source=cache_file:please_wait"
                 )
+                logger.info(f"[WS] tts_audio sent: turn_id={turn_id}, sentence_id=0, kind=filler")
                 await self.send_json({
                     "type": "tts_audio",
                     "turn_id": turn_id,
@@ -813,6 +856,7 @@ class SunaiConnectionManager:
         logger.info(
             f"[WS Audio] Sent clip sentence_id={sentence_id}, turn_id={turn_id}, source=timbre_live, is_last={is_last}, text='{translated_text[:40]}...'"
         )
+        logger.info(f"[WS] tts_audio sent: turn_id={turn_id}, sentence_id={sentence_id}, kind=sentence")
 
         # 4. Dispatch tts_audio payload to client
         if turn_id != self.current_turn_id or self.llm_cancel_event.is_set():

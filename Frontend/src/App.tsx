@@ -132,16 +132,17 @@ export const App: React.FC = () => {
     };
 
     ws.onTtsAudio = (sentenceId, audioBuffer, replyText, turnId, kind) => {
-      console.log(`[App] Received TTS audio for sentence ${sentenceId} (turn=${turnId}, kind=${kind}): ${replyText}`);
       if (typeof turnId === 'number') {
         if (turnId < currentTurnIdRef.current) {
-          console.warn(`[App] Dropping late audio for old turn ${turnId} (current=${currentTurnIdRef.current})`);
+          console.warn(`[App] tts_audio dropped: turn_id=${turnId} < current=${currentTurnIdRef.current}`);
           return;
         }
         if (turnId > currentTurnIdRef.current) {
           currentTurnIdRef.current = turnId;
+          pq.setTurnId(turnId);
         }
       }
+      console.log(`[App] tts_audio accepted: turn_id=${turnId}, sentence_id=${sentenceId}, kind=${kind}`);
       // If real sentence arrives and filler is playing, immediately abort filler (Bug 3 fix)
       if (kind !== 'filler' && sentenceId !== 0) {
         pq.stopCurrentIfFiller();
@@ -176,7 +177,7 @@ export const App: React.FC = () => {
     };
 
     ws.onResume = () => {
-      console.log('[App] Received resume command from backend.');
+      console.log('[App] resume received');
       setIsInterrupted(false);
       pq.resume();
       setSphereState('SPEAKING');
@@ -184,15 +185,16 @@ export const App: React.FC = () => {
 
     ws.onClearQueue = (turnId?: number) => {
       console.log(`[App] Received clear_queue command from backend (turnId=${turnId}).`);
-      pq.clear();
+      if (typeof turnId === 'number') {
+        currentTurnIdRef.current = Math.max(currentTurnIdRef.current, turnId);
+      }
+      pq.clear(turnId);
       setQueueLength(0);
       setIsPlayingAudio(false);
       setSphereState('LISTENING');
-      if (typeof turnId === 'number') {
-        currentTurnIdRef.current = turnId;
-      }
       // Send clear_ack handshake back to backend
       if (wsClientRef.current) {
+        console.log(`[App] clear_ack sent: turn_id=${turnId}`);
         wsClientRef.current.sendClearAck(turnId);
       }
     };

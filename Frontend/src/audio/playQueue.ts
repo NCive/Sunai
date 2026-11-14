@@ -30,6 +30,8 @@ export class PlayQueue {
   private activeSentenceId: number | string | null = null;
   private activeItem: PlayQueueItem | null = null;
   private onSentenceFinishedCallback: SentenceFinishedCallback | null = null;
+  private currentTurnId: number = 0;
+  private epoch: number = 0;
 
   constructor() {
     this.initAudioContext();
@@ -58,7 +60,17 @@ export class PlayQueue {
     this.onSentenceFinishedCallback = callback;
   }
 
+  public setTurnId(turnId: number): void {
+    if (turnId > this.currentTurnId) {
+      this.currentTurnId = turnId;
+    }
+  }
+
   public async enqueue(item: PlayQueueItem): Promise<void> {
+    if (typeof item.turnId === 'number' && item.turnId < this.currentTurnId) {
+      console.warn(`[PlayQueue] Dropping clip with older turnId ${item.turnId} (current=${this.currentTurnId})`);
+      return;
+    }
     this.initAudioContext();
     this.queue.push(item);
     if (!this.isPlaying && !this.isPaused) {
@@ -77,8 +89,16 @@ export class PlayQueue {
       await this.audioContext.resume();
     }
 
+    const runEpoch = this.epoch;
     this.isPlaying = true;
     const nextItem = this.queue.shift()!;
+
+    if (typeof nextItem.turnId === 'number' && nextItem.turnId < this.currentTurnId) {
+      console.warn(`[PlayQueue] Discarding stale queued item (turn ${nextItem.turnId} < current ${this.currentTurnId})`);
+      await this.playNext();
+      return;
+    }
+
     this.activeSentenceId = nextItem.sentenceId;
     this.activeItem = nextItem;
 
@@ -87,9 +107,20 @@ export class PlayQueue {
       const bufferCopy = nextItem.audioData.slice(0);
       const audioBuffer = await this.audioContext.decodeAudioData(bufferCopy);
 
-      if (!this.isPlaying || this.isPaused) {
-        // Paused or cleared while decoding
+      if (this.epoch !== runEpoch) {
+        // Queue cleared during async decode: drop stale audio without re-queueing
+        console.log(`[PlayQueue] Dropping decoded audio from cancelled epoch ${runEpoch} (current=${this.epoch})`);
+        return;
+      }
+
+      if (this.isPaused) {
+        // Paused while decoding; put back into queue
         this.queue.unshift(nextItem);
+        this.isPlaying = false;
+        return;
+      }
+
+      if (!this.isPlaying) {
         return;
       }
 
@@ -131,6 +162,7 @@ export class PlayQueue {
       console.log('[PlayQueue] Stopping active filler clip to prioritize real answer sentence.');
       if (this.currentSource) {
         try {
+          this.currentSource.onended = null;
           this.currentSource.stop();
           this.currentSource.disconnect();
         } catch {
@@ -140,9 +172,9 @@ export class PlayQueue {
       }
       this.activeItem = null;
       this.activeSentenceId = null;
+      this.isPlaying = false;
       // Discard any other queued filler items
       this.queue = this.queue.filter((item) => item.kind !== 'filler' && item.sentenceId !== 0);
-      this.playNext();
       return true;
     }
     return false;
@@ -176,10 +208,15 @@ export class PlayQueue {
   /**
    * Clears the remaining queue and stops current playback immediately.
    */
-  public clear(): void {
+  public clear(newTurnId?: number): void {
+    this.epoch += 1;
+    if (typeof newTurnId === 'number' && newTurnId > this.currentTurnId) {
+      this.currentTurnId = newTurnId;
+    }
     this.queue = [];
     if (this.currentSource) {
       try {
+        this.currentSource.onended = null;
         this.currentSource.stop();
         this.currentSource.disconnect();
       } catch {

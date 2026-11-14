@@ -129,6 +129,82 @@ def is_backchannel_token(token: str) -> bool:
     return False
 
 
+def has_extra_content_words(norm: str, tokens: List[str]) -> bool:
+    """
+    Checks if there are any words in tokens that are NOT part of
+    GO_ON_PHRASES, BACKCHANNEL_WORDS, or NON_LEXICAL_SOUNDS.
+    """
+    text_rem = f" {norm} "
+    all_multi_phrases = [p for p in GO_ON_PHRASES if " " in p] + [p for p in BACKCHANNEL_WORDS if " " in p]
+    all_multi_phrases.sort(key=lambda x: len(x.split()), reverse=True)
+    for phrase in all_multi_phrases:
+        target = f" {phrase} "
+        if target in text_rem:
+            text_rem = text_rem.replace(target, " ")
+    rem_tokens = text_rem.split()
+    polite_markers = {"please", "kripya", "कृपया", "krupaya", "zara"}
+    for t in rem_tokens:
+        if t in GO_ON_PHRASES:
+            continue
+        if t in BACKCHANNEL_WORDS or is_backchannel_token(t):
+            continue
+        if t in NON_LEXICAL_SOUNDS or t in polite_markers:
+            continue
+        return True
+    return False
+
+
+def is_reaction_utterance(text: str) -> bool:
+    """
+    Checks if final utterance is a short reaction/backchannel (<= 4 words, no '?',
+    no question words, no stop words, ALL tokens in BACKCHANNEL_WORDS or NON_LEXICAL_SOUNDS).
+    """
+    if not text:
+        return False
+    if "?" in text:
+        return False
+    norm = normalize_text(text)
+    if not norm:
+        return False
+    tokens = norm.split()
+    word_count = len(tokens)
+    max_words = getattr(config, "REACTION_MAX_WORDS", 4)
+    if word_count == 0 or word_count > max_words:
+        return False
+    if match_keyword_set(tokens, STOP_WORDS, min_ratio=0.85):
+        return False
+    if match_keyword_set(tokens, QUESTION_WORDS, min_ratio=0.85):
+        return False
+    if norm in BACKCHANNEL_WORDS or norm in NON_LEXICAL_SOUNDS:
+        return True
+    multi_words = [w for w in (BACKCHANNEL_WORDS | NON_LEXICAL_SOUNDS) if " " in w]
+    multi_words.sort(key=lambda x: len(x.split()), reverse=True)
+    norm_cleaned = f" {norm} "
+    for mw in multi_words:
+        norm_cleaned = norm_cleaned.replace(f" {mw} ", " ")
+    remaining_tokens = norm_cleaned.split()
+    for t in remaining_tokens:
+        if t in BACKCHANNEL_WORDS or is_backchannel_token(t) or t in NON_LEXICAL_SOUNDS:
+            continue
+        return False
+    return True
+
+
+def is_go_on_utterance(text: str) -> bool:
+    """
+    Checks if utterance is a clean go-on phrase without question words or extra content words.
+    """
+    if not text:
+        return False
+    norm = normalize_text(text)
+    if not norm:
+        return False
+    if norm in GO_ON_PHRASES:
+        return True
+    decision, _ = classify_utterance(text)
+    return decision == "go_on"
+
+
 def classify_utterance(
     text: str,
     has_voice: bool = True,
@@ -190,8 +266,31 @@ def classify_utterance(
     # Evaluated before general QUESTION words so phrases like 'tell me more' or 'aur batao' continue
     matched_go_on = match_phrase_list(norm, tokens, GO_ON_PHRASES)
     if matched_go_on:
-        logger.info(f"[Interruption] Rule C fired: matched GO_ON phrase '{matched_go_on}' in '{norm}' -> go_on")
-        return "go_on", f"rule_c_go_on:{matched_go_on}"
+        go_on_max_words = getattr(config, "GO_ON_MAX_WORDS", 4)
+        has_question = False
+        if ends_with_qmark or "?" in raw_text:
+            has_question = True
+        elif match_keyword_set(tokens, QUESTION_WORDS, min_ratio=0.85):
+            if matched_go_on in QUESTION_WORDS or norm in QUESTION_WORDS:
+                has_question = True
+            else:
+                tokens_without_go_on = f" {norm} ".replace(f" {matched_go_on} ", " ").split()
+                if match_keyword_set(tokens_without_go_on, QUESTION_WORDS, min_ratio=0.85):
+                    has_question = True
+
+        is_clean_go_on = (
+            word_count <= go_on_max_words
+            and not has_question
+            and not has_extra_content_words(norm, tokens)
+        )
+        if is_clean_go_on:
+            logger.info(f"[Interruption] Rule C fired: matched GO_ON phrase '{matched_go_on}' in '{norm}' -> go_on")
+            return "go_on", f"rule_c_go_on:{matched_go_on}"
+        else:
+            logger.info(
+                f"[Interruption] Rule C skipped: phrase '{matched_go_on}' matched in '{norm}' but has extra words/question "
+                f"(words={word_count}, max={go_on_max_words}, has_question={has_question}) -> falling through"
+            )
 
     # -------------------------------------------------------------
     # RULE B (cont): QUESTION WORDS (Interruption -> hard stop)

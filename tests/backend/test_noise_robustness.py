@@ -195,11 +195,12 @@ def test_clap_and_keyboard_clicks_resumption():
         await tm.on_user_voice_start(meta={"duration_ms": 80, "peak": 0.95, "rms": clap_rms, "speech_probability": 0.3})
         assert sm.get_state() == "PAUSED", "Loud clap immediately pauses bot audio (Stage 1)"
 
-        # STT returns NO text for the clap
+        # STT returns NO text for the clap; browser VAD signals voice end
         tm.current_user_text = ""
+        await tm.on_user_voice_end(None)
 
-        # Wait for TurnManager pause window to evaluate and resume
-        await asyncio.sleep(1.3)
+        # Wait for TurnManager pause window to evaluate and resume (1.0s post-voice wait)
+        await asyncio.sleep(1.1)
         t_resumed = time.time()
 
         assert sm.get_state() == "SPEAKING", f"Bot must resume to SPEAKING on clap noise, got {sm.get_state()}"
@@ -220,8 +221,9 @@ def test_clap_and_keyboard_clicks_resumption():
         await tm.on_user_voice_start(meta={"duration_ms": 400, "peak": 0.8, "rms": kb_rms, "speech_probability": 0.25})
         assert sm.get_state() == "PAUSED"
         tm.current_user_text = ""  # No speech transcribed
+        await tm.on_user_voice_end(None)
 
-        await asyncio.sleep(1.3)
+        await asyncio.sleep(1.1)
         assert sm.get_state() == "SPEAKING"
         assert any(ev == "decision" and p.get("decision") == "noise" for ev, p in events_sent)
         assert mm.stats["pause_first"].noise_resumed == 2

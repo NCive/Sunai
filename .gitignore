@@ -80,9 +80,21 @@ share/python-wheels/
 .pytest_cache/
 .coverage
 .coverage.*
+coverage.xml
 htmlcov/
 .tox/
 .nox/
+
+# Scratch benchmarks & temporary benchmark experiments
+scratch_benchmark/
+scratch_benchmarks/
+scratch/
+.scratch/
+
+# LLM testing & benchmark results (explicitly preserved in GitHub repo)
+!LLM_Testing/
+!LLM_Testing/results/
+!LLM_Testing/results/**
 
 # Node, web app dependencies and build outputs
 node_modules/

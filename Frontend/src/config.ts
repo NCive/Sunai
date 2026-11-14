@@ -46,6 +46,7 @@ export interface SphereConfig {
 export interface AudioCaptureConfig {
   sampleRate: number;
   channelCount: number;
+  chunkSamples: number;
   chunkDurationMs: number;
   echoCancellation: boolean;
   noiseSuppression: boolean;
@@ -131,7 +132,8 @@ export const CONFIG: FrontendConfig = {
   audioCapture: {
     sampleRate: 16000,
     channelCount: 1,
-    chunkDurationMs: 100,
+    chunkSamples: 512,
+    chunkDurationMs: 32,
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: false,

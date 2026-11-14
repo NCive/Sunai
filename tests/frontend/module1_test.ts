@@ -8,7 +8,8 @@ console.log('--- RUNNING SUNAI MODULE 1 TESTS ---\n');
 console.log('Test 1: Validating CONFIG parameters...');
 assert.strictEqual(CONFIG.audioCapture.sampleRate, 16000, 'Audio capture must be 16kHz');
 assert.strictEqual(CONFIG.audioCapture.channelCount, 1, 'Audio capture must be mono (1 channel)');
-assert.strictEqual(CONFIG.audioCapture.chunkDurationMs, 100, 'Chunk duration should be ~100ms');
+assert.strictEqual(CONFIG.audioCapture.chunkDurationMs, 32, 'Chunk duration should be 32ms (AudioWorklet 512 samples)');
+assert.strictEqual(CONFIG.audioCapture.chunkSamples, 512, 'Chunk samples must be 512');
 assert.strictEqual(CONFIG.audioCapture.echoCancellation, true, 'echoCancellation must be true');
 assert.strictEqual(CONFIG.audioCapture.noiseSuppression, true, 'noiseSuppression must be true');
 assert.strictEqual(CONFIG.sphere.dotCount, 6000, 'Default dot count must be 6000');
@@ -38,13 +39,13 @@ console.log('✓ Test 2 Passed: 16kHz mono 16-bit PCM WAV generated correctly.\n
 
 // Test 3: Audio Chunk Math
 console.log('Test 3: Validating chunk size calculation...');
-const expectedSamplesPerChunk = Math.round(
+const expectedSamplesPerChunk = CONFIG.audioCapture.chunkSamples ?? Math.round(
   (CONFIG.audioCapture.sampleRate * CONFIG.audioCapture.chunkDurationMs) / 1000
 );
-assert.strictEqual(expectedSamplesPerChunk, 1600, '100ms at 16kHz must equal exactly 1600 samples');
+assert.strictEqual(expectedSamplesPerChunk, 512, '32ms at 16kHz must equal exactly 512 samples');
 const pcmBytesPerChunk = expectedSamplesPerChunk * 2; // 16-bit = 2 bytes per sample
-assert.strictEqual(pcmBytesPerChunk, 3200, 'Chunk buffer size must be 3200 bytes');
-console.log('✓ Test 3 Passed: Audio chunk math (1600 samples = 3200 bytes) verified.\n');
+assert.strictEqual(pcmBytesPerChunk, 1024, 'Chunk buffer size must be 1024 bytes');
+console.log('✓ Test 3 Passed: Audio chunk math (512 samples = 1024 bytes) verified.\n');
 
 // Test 4: VAD Energy Logic Simulation
 console.log('Test 4: Simulating VAD energy calculation and speech hold logic...');

@@ -49,6 +49,9 @@ PRISMA_KEYWORDS: list[str] = [
 LIGHT_NOISE_MIN_VOICE_DURATION_MS: int = 80  # Fast sound ended <80ms with no text resumes as noise
 PAUSE_FIRST_CHECK_MS: int = 400  # Default pause check window in ms
 PAUSE_PRISMA_TEXT_WAIT_SEC: float = 0.50  # Gentle check window for Prisma text while PAUSED
+PAUSE_POST_VOICE_TEXT_WAIT_SEC: float = 1.0  # Wait time for STT text after vad_end before deciding noise
+PAUSE_WINDOW_MAX_SEC: float = 5.0  # Hard cap on pause window duration
+LONG_VOICE_NO_TEXT_SEC: float = 1.5  # Vocalization duration threshold for "long_voice_no_text" log reason
 SAFETY_NET_SPEAKING_INTERRUPT: bool = True  # Safety net: real words while SPEAKING trigger pause even if browser VAD missed
 EXPERIMENTAL_DENOISE: bool = False  # Experimental denoiser switch (off by default)
 
@@ -84,6 +87,8 @@ NOISE_RMS_ENERGY_THRESHOLD: float = 0.015
 NOISE_MAX_DURATION_SEC: float = 0.25
 INTERRUPTION_WORD_COUNT_THRESHOLD: int = 3
 UNCLEAR_MAX_RETRIES: int = 2
+REACTION_MAX_WORDS: int = 4
+GO_ON_MAX_WORDS: int = 4
 
 # Word Lists from separate editable interruption_words.py
 from Backend.interruption_words import (
