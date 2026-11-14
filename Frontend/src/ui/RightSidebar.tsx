@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SidebarCard } from './SidebarCard';
 import { ModeSwitchAndStats } from './ModeSwitchAndStats';
-import { MetricsPayload } from '../ws/client';
+import { MetricsPayload, LanguageHint } from '../ws/client';
 import { SphereState, DecisionType } from '../sphere/SphereRenderer';
 import {
   SparklesIcon,
@@ -31,6 +31,8 @@ export interface RightSidebarProps {
   // Intelligence & status
   sources: string[];
   isRefused: boolean;
+  languageHint?: LanguageHint;
+  onLanguageHintChange?: (hint: LanguageHint) => void;
 
   // Dev controls
   stubDecision: 'small_sound' | 'interruption';
@@ -76,6 +78,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   micChunksCount,
   sources,
   isRefused,
+  languageHint = 'auto',
+  onLanguageHintChange,
   stubDecision,
   onStubDecisionChange,
   isPlayingAudio,
@@ -241,6 +245,103 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         reduceMotion={reduceMotion}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.72rem' }}>
+          {/* Language Selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span
+              style={{
+                color: 'var(--space-star-70)',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                fontSize: '0.66rem',
+                letterSpacing: '0.04em',
+              }}
+            >
+              Language
+            </span>
+            <div
+              role="radiogroup"
+              aria-label="Language"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '4px',
+                background: 'var(--space-black)',
+                padding: '3px',
+                borderRadius: '6px',
+                border: '1px solid var(--space-blue-70)',
+              }}
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={languageHint === 'auto'}
+                onClick={() => onLanguageHintChange?.('auto')}
+                style={{
+                  background: languageHint === 'auto' ? 'var(--space-blue)' : 'transparent',
+                  color: 'var(--space-star)',
+                  border: `1px solid ${languageHint === 'auto' ? 'var(--space-gold)' : 'transparent'}`,
+                  borderRadius: '4px',
+                  padding: '5px 4px',
+                  fontFamily: 'var(--font-hud)',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  textAlign: 'center',
+                  boxShadow: languageHint === 'auto' ? '0 0 10px var(--space-gold-glow)' : 'none',
+                  transition: reduceMotion ? 'none' : 'all 0.2s ease',
+                }}
+              >
+                Auto
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={languageHint === 'hi-IN'}
+                onClick={() => onLanguageHintChange?.('hi-IN')}
+                style={{
+                  background: languageHint === 'hi-IN' ? 'var(--space-blue)' : 'transparent',
+                  color: 'var(--space-star)',
+                  border: `1px solid ${languageHint === 'hi-IN' ? 'var(--space-gold)' : 'transparent'}`,
+                  borderRadius: '4px',
+                  padding: '5px 4px',
+                  fontFamily: 'var(--font-indic)',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  textAlign: 'center',
+                  boxShadow: languageHint === 'hi-IN' ? '0 0 10px var(--space-gold-glow)' : 'none',
+                  transition: reduceMotion ? 'none' : 'all 0.2s ease',
+                }}
+              >
+                हिन्दी
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={languageHint === 'mr-IN'}
+                onClick={() => onLanguageHintChange?.('mr-IN')}
+                style={{
+                  background: languageHint === 'mr-IN' ? 'var(--space-blue)' : 'transparent',
+                  color: 'var(--space-star)',
+                  border: `1px solid ${languageHint === 'mr-IN' ? 'var(--space-gold)' : 'transparent'}`,
+                  borderRadius: '4px',
+                  padding: '5px 4px',
+                  fontFamily: 'var(--font-indic)',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  textAlign: 'center',
+                  boxShadow: languageHint === 'mr-IN' ? '0 0 10px var(--space-gold-glow)' : 'none',
+                  transition: reduceMotion ? 'none' : 'all 0.2s ease',
+                }}
+              >
+                मराठी
+              </button>
+            </div>
+          </div>
+
           {/* Latency Breakdown Rows */}
           {latencies && Object.keys(latencies).length > 0 && (
             <div

@@ -45,6 +45,45 @@ PRISMA_KEYWORDS: list[str] = [
     "Gnani", "Gnani.ai", "Prisma", "Timbre", "Armour365", "Inya", "Inya Workforce",
     "Inya Assist", "Inya Insights", "Inya DIY", "Vachana", "TVS Credit", "Bajaj Allianz", "Razorpay"
 ]
+
+# Language Hint Marker Words (Devanagari Function Words)
+MARATHI_MARKER_WORDS: tuple[str, ...] = (
+    "आहे",
+    "आहेत",
+    "आहात",
+    "आहोत",
+    "तुम्ही",
+    "मला",
+    "तुला",
+    "काय",
+    "कुठे",
+    "किती",
+    "पाहिजे",
+    "सांगा",
+    "आणि",
+    "म्हणालात",
+    "नको",
+    "आम्ही",
+    "माझा",
+    "माझी",
+    "माझं",
+)
+
+HINDI_MARKER_WORDS: tuple[str, ...] = (
+    "है",
+    "हैं",
+    "हूँ",
+    "क्या",
+    "कैसे",
+    "मुझे",
+    "कौन",
+    "कहाँ",
+    "आपका",
+    "आपकी",
+    "और",
+    "नहीं",
+    "मैं",
+)
 # Light Noise Cancellation & Pause Evaluation (Items 2, 4, 5, 6)
 LIGHT_NOISE_MIN_VOICE_DURATION_MS: int = 80  # Fast sound ended <80ms with no text resumes as noise
 PAUSE_FIRST_CHECK_MS: int = 400  # Default pause check window in ms

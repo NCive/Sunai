@@ -32,6 +32,7 @@ from Backend.interruption import (
     is_go_on_utterance,
 )
 from Backend.metrics import get_metrics_manager
+from Backend.language_hint import resolve_language, apply_language_hint
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class SunaiConnectionManager:
         self.stt_session: Optional[PrismaSTTSession] = None
         self.retriever = get_global_retriever()
         self.current_language = "hi-IN"
+        self.language_hint = "auto"
         self.current_turn_id = 0
         self.turn_sentence_counter = 0
         self.last_vad_end_time = time.time()
@@ -152,9 +154,10 @@ class SunaiConnectionManager:
 
         # Callback for Prisma transcripts
         def on_stt_transcript(text: str, lang: Optional[str], is_final: bool) -> None:
-            if lang:
-                self.current_language = lang
-                self.turn_manager.current_language = lang
+            raw_lang = lang or self.current_language
+            resolved_lang = apply_language_hint(text, raw_lang, self.language_hint, self.current_language)
+            self.current_language = resolved_lang
+            self.turn_manager.current_language = resolved_lang
             self.turn_manager.current_user_text = text
             if is_final:
                 self.turn_manager.has_final_transcript = True
@@ -261,6 +264,15 @@ class SunaiConnectionManager:
                 await self.stt_session.set_language_override(requested_lang)
             await self.send_json({"type": "language_set", "language": requested_lang})
 
+        elif msg_type == "set_language_hint":
+            hint = data.get("hint")
+            if hint in ("auto", "hi-IN", "mr-IN"):
+                self.language_hint = hint
+                logger.info(f"[WS] Language hint set to: {self.language_hint}")
+                await self.send_json({"type": "language_hint_set", "hint": self.language_hint})
+            else:
+                logger.warning(f"[WS] Invalid language hint ignored: {hint}")
+
         elif msg_type == "vad_end":
             logger.info(f"[WS] vad_end received in state={self.sm.get_state()}")
             self.last_vad_end_time = time.time()
@@ -320,7 +332,10 @@ class SunaiConnectionManager:
         if self.stt_session:
             self.stt_session.reset_transcript()
 
-        lang = self.current_language
+        # Ensure finalized turn language matches the complete final user text and hint
+        lang = apply_language_hint(user_text, self.current_language, self.language_hint, self.current_language)
+        self.current_language = lang
+        self.turn_manager.current_language = lang
         t_final_text = time.time()
         logger.info(f"[WS] Finalized user question: '{user_text}' (lang={lang})")
 

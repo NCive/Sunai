@@ -5,7 +5,7 @@ import { MicCapture } from './audio/capture';
 import { BrowserVAD } from './audio/vad';
 import { PlayQueue } from './audio/playQueue';
 import { generateTestWav } from './audio/syntheticAudio';
-import { SunaiWebSocketClient, MetricsPayload } from './ws/client';
+import { SunaiWebSocketClient, MetricsPayload, LanguageHint } from './ws/client';
 import { CONFIG } from './config';
 import {
   LiveCaptions,
@@ -30,6 +30,22 @@ export const App: React.FC = () => {
   // Interruption mode & stub setting
   const [interruptionMode, setInterruptionMode] = useState<'pause_first' | 'baseline'>('pause_first');
   const [stubDecision, setStubDecisionState] = useState<'small_sound' | 'interruption'>('small_sound');
+
+  // Language setting (Auto, Hindi, Marathi)
+  const [languageHint, setLanguageHint] = useState<LanguageHint>(() => {
+    try {
+      const saved = localStorage.getItem('sunai_language_hint');
+      if (saved === 'hi-IN' || saved === 'mr-IN' || saved === 'auto') {
+        return saved;
+      }
+    } catch {}
+    return 'auto';
+  });
+  const languageHintRef = useRef<LanguageHint>(languageHint);
+
+  useEffect(() => {
+    languageHintRef.current = languageHint;
+  }, [languageHint]);
 
   // Captions and bot sentences tracking
   const [userText, setUserText] = useState<string>('');
@@ -110,6 +126,7 @@ export const App: React.FC = () => {
       setIsWsConnected(connected);
       if (connected) {
         ws.setMode(interruptionModeRef.current);
+        ws.sendLanguageHint(languageHintRef.current);
         // Do NOT send stub override on normal connect (Bug 2 fix)
       }
     };
@@ -379,6 +396,14 @@ export const App: React.FC = () => {
     wsClientRef.current?.setMode(mode);
   };
 
+  const handleLanguageHintChange = useCallback((hint: LanguageHint) => {
+    setLanguageHint(hint);
+    try {
+      localStorage.setItem('sunai_language_hint', hint);
+    } catch {}
+    wsClientRef.current?.sendLanguageHint(hint);
+  }, []);
+
   const handleStubDecisionChange = (decision: 'small_sound' | 'interruption') => {
     setStubDecisionState(decision);
     wsClientRef.current?.setStubDecision(decision);
@@ -558,6 +583,8 @@ export const App: React.FC = () => {
           micChunksCount={micChunksCount}
           sources={activeSources}
           isRefused={isRefused}
+          languageHint={languageHint}
+          onLanguageHintChange={handleLanguageHintChange}
           stubDecision={stubDecision}
           onStubDecisionChange={handleStubDecisionChange}
           isPlayingAudio={isPlayingAudio}

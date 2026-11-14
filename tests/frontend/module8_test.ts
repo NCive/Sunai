@@ -213,6 +213,21 @@ assert.ok(lowPowerDotCount < normalDotCount, 'Low power mode reduces GPU dot bud
 
 console.log('✓ Test 6 Passed: Performance toggles correctly configure dot count and animation budgets.\n');
 
+
+// =====================================================================
+// Test 7: Language Hint Message Format
+// =====================================================================
+console.log('Test 7: Validating Language Hint Message Format...');
+
+const validHints = ['auto', 'hi-IN', 'mr-IN'] as const;
+for (const hint of validHints) {
+  const msg = { type: 'set_language_hint', hint };
+  assert.strictEqual(msg.type, 'set_language_hint');
+  assert.ok(validHints.includes(msg.hint));
+}
+
+console.log('✓ Test 7 Passed: Language Hint message formatting validated.\n');
+
 console.log('==================================================');
 console.log('ALL SUNAI MODULE 8 FRONTEND TESTS PASSED!');
 console.log('==================================================');

@@ -72,6 +72,7 @@ export type SourcesCallback = (sources: string[], refused: boolean) => void;
 export type MetricsCallback = (metrics: MetricsPayload) => void;
 export type ConnectionCallback = (connected: boolean) => void;
 export type VoidCallback = () => void;
+export type LanguageHint = 'auto' | 'hi-IN' | 'mr-IN';
 
 /**
  * Helper to decode base64 string to ArrayBuffer.
@@ -293,8 +294,16 @@ export class SunaiWebSocketClient {
     this.sendJson({ type: 'blip_ignored' });
   }
 
+  public sendLanguageHint(hint: LanguageHint): void {
+    this.sendJson({ type: 'set_language_hint', hint });
+  }
+
   public sendLanguageOverride(language: string): void {
-    this.sendJson({ type: 'set_language', language });
+    if (language === 'auto' || language === 'hi-IN' || language === 'mr-IN') {
+      this.sendLanguageHint(language);
+    } else {
+      this.sendJson({ type: 'set_language', language });
+    }
   }
 
   public sendVadEnd(): void {
