@@ -74,6 +74,8 @@ export interface TeamMember {
   contribution: string;
 }
 
+export const DEMO_VIDEO_URL = 'https://drive.google.com/file/d/1tJ_N9ztI08ZV5Y7xWpVXvE_Kf9ArqGpl/view?usp=drivesdk';
+
 export const content = {
   // App navigation & status check config
   assistantUrl: (import.meta.env.VITE_APP_URL as string) || 'http://localhost:5173',
@@ -533,8 +535,8 @@ export const content = {
     tag: 'DEMONSTRATION',
     title: 'See Sunai in Action',
     subtitle: 'Watch how the pause-first architecture handles conversational timing.',
-    videoSrc: '/video/demo.mp4',
-    note: 'The demo video was recorded without audio. In it, Sunai was responding through Timbre and listening through Prisma.',
+    videoSrc: DEMO_VIDEO_URL,
+    driveVideoUrl: DEMO_VIDEO_URL,
     fallbackTitle: 'Demonstration Video',
     fallbackDescription: 'Video recording of Sunai interacting with live Prisma speech transcription and Timbre speech synthesis.',
     runStepsTitle: 'Run it yourself',

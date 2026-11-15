@@ -56,6 +56,8 @@ export interface SlideRegistryItem {
     onOpenOfflineModal: () => void;
     isOnline: boolean | null;
     hasScrolled?: boolean;
+    isActive?: boolean;
+    onStopAutoplay?: () => void;
   }) => React.ReactNode;
 }
 
@@ -136,14 +138,14 @@ export const SLIDES_REGISTRY: SlideRegistryItem[] = [
     buildStepLength: 0,
     hold: 60,
     pose: {
-      position: [0, -35, -15],
-      rotation: [0.4, 0, 0],
-      scale: 0.9,
-      ringTilt: [Math.PI / 2, 0, 0],
-      ringScale: 1.4,
+      position: [0, 20, -35],
+      rotation: [0.3, 0, 0],
+      scale: 0.75,
+      ringTilt: [Math.PI / 2.5, 0, 0],
+      ringScale: 1.0,
       stateColor: '#2FD3A5',
       ringColor: '#E5C18B',
-      opacity: 0.8,
+      opacity: 0.7,
       speed: 0.35,
     },
     render: (props) => <Slide04Outcomes buildStep={props.buildStep} />,

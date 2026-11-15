@@ -96,14 +96,6 @@ export function DemoSection({ isOnline, onOpenOfflineModal }: DemoSectionProps) 
                 </button>
               </div>
             )}
-
-            {/* Video Caption Note */}
-            <div className="p-4 sm:p-5 border-t border-white/10 bg-[#0A1024] flex items-start sm:items-center gap-3 text-left">
-              <Info className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5 sm:mt-0" />
-              <p className="text-xs text-zinc-400 leading-relaxed font-mono">
-                {content.demo.note}
-              </p>
-            </div>
           </div>
         </div>
 

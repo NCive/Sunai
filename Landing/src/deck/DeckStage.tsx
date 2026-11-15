@@ -108,6 +108,8 @@ export function DeckStage({
                 onOpenOfflineModal: () => setOfflineModalOpen(true),
                 isOnline,
                 hasScrolled: true,
+                isActive: true,
+                onStopAutoplay: () => setIsAutoplay(false),
               })}
             </div>
           ))}
@@ -184,6 +186,7 @@ export function DeckStage({
             onOpenOfflineModal={() => setOfflineModalOpen(true)}
             hasScrolled={hasScrolled}
             isLowPower={isLowPower}
+            onStopAutoplay={() => setIsAutoplay(false)}
           />
         </main>
       </div>

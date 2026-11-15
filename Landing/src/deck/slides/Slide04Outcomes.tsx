@@ -5,7 +5,7 @@ interface Slide04OutcomesProps {
   buildStep?: number; // 0, 1, 2
 }
 
-export function Slide04Outcomes({ buildStep = 2 }: Slide04OutcomesProps) {
+export function Slide04Outcomes({ buildStep = 0 }: Slide04OutcomesProps) {
   return (
     <SlideFrame
       id="outcomes"
@@ -13,9 +13,8 @@ export function Slide04Outcomes({ buildStep = 2 }: Slide04OutcomesProps) {
       title="The Three Classification Outcomes"
       subtitle="Sunai classifies incoming acoustic energy and lexical tokens into three distinct decisions."
     >
-      <div className="w-full my-auto grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="w-full my-auto grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4 relative z-10">
         {content.howItWorks.outcomes.map((outcome, idx) => {
-          const isRevealed = idx <= buildStep;
           const isCurrent = idx === buildStep;
 
           const dotColor =
@@ -35,27 +34,25 @@ export function Slide04Outcomes({ buildStep = 2 }: Slide04OutcomesProps) {
           return (
             <div
               key={idx}
-              className={`p-5 rounded-sm deck-card border ${borderColor} transition-all duration-300 flex flex-col justify-between ${
+              className={`p-4 sm:p-5 rounded-sm deck-card border ${borderColor} transition-all duration-300 flex flex-col justify-between relative z-10 bg-[#0A1024]/95 backdrop-blur-md opacity-100 ${
                 isCurrent
-                  ? 'scale-[1.02] shadow-2xl bg-[#0A1024]/90'
-                  : isRevealed
-                  ? 'opacity-100'
-                  : 'opacity-30'
+                  ? 'scale-[1.01] shadow-2xl ring-1 ring-[#62C9E8]/60 border-[#62C9E8]/70'
+                  : 'hover:border-[#244DA8]'
               }`}
             >
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2.5 sm:mb-3">
                   <span className={`w-3 h-3 rounded-full ${dotColor}`} />
                   <span className="text-xs font-mono uppercase tracking-wider text-[#EAF0FF]">
                     {outcome.label}
                   </span>
                 </div>
 
-                <div className="text-xs font-mono text-[#EAF0FF] bg-[#050817] px-3 py-2 rounded border border-[#202D4D] mb-3">
+                <div className="text-xs font-mono text-[#EAF0FF] bg-[#050817] px-3 py-2 rounded border border-[#202D4D] mb-2.5 sm:mb-3">
                   {outcome.trigger}
                 </div>
 
-                <h3 className="text-base font-heading font-medium tracking-wide uppercase text-[#EAF0FF] mb-2">
+                <h3 className="text-sm sm:text-base font-heading font-medium tracking-wide uppercase text-[#EAF0FF] mb-2">
                   {outcome.behavior}
                 </h3>
 
@@ -64,7 +61,7 @@ export function Slide04Outcomes({ buildStep = 2 }: Slide04OutcomesProps) {
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#202D4D] flex items-center justify-between text-[10px] font-mono text-[#647394]">
+              <div className="mt-3.5 sm:mt-4 pt-2.5 sm:pt-3 border-t border-[#202D4D] flex items-center justify-between text-[10px] font-mono text-[#A1AFCE]">
                 <span>DECISION 0{idx + 1}</span>
                 <span className="text-[#E5C18B] uppercase">{outcome.color} STATE</span>
               </div>

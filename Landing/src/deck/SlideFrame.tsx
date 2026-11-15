@@ -50,7 +50,7 @@ export function SlideFrame({
       </div>
 
       {/* Slide Main Body Content */}
-      <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center my-auto z-10 overflow-hidden py-2">
+      <div className="w-full max-w-6xl mx-auto flex-1 min-h-0 flex flex-col justify-center my-auto z-10 overflow-hidden py-2">
         {children}
       </div>
 

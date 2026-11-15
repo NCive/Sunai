@@ -45,8 +45,42 @@ export function useDeckScroll(reducedMotion: boolean) {
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isOverviewOpen, setIsOverviewOpen] = useState(false);
-  const [isAutoplay, setIsAutoplay] = useState(false);
+  const [isAutoplay, setIsAutoplayState] = useState(false);
+  const isAutoplayRef = useRef(false);
   const [autoplaySecondsLeft, setAutoplaySecondsLeft] = useState(content.deck.autoplayInterval || 8);
+
+  const stopAutoplayMove = useCallback(() => {
+    // 1. Cancel running Lenis scroll at current position WITHOUT lenis.stop() (preserves user scrolling)
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(lenisRef.current.scroll, { immediate: true });
+    }
+    // 2. Cancel any pending GSAP ScrollTrigger snap tween
+    ScrollTrigger.getAll().forEach((st) => {
+      const snapTween = (st as any).getTween?.();
+      if (snapTween) {
+        snapTween.kill();
+      }
+    });
+    gsap.killTweensOf(window);
+    if (spacerRef.current) {
+      gsap.killTweensOf(spacerRef.current);
+    }
+  }, []);
+
+  const setIsAutoplay = useCallback(
+    (valueOrUpdater: boolean | ((prev: boolean) => boolean)) => {
+      setIsAutoplayState((prev) => {
+        const nextVal = typeof valueOrUpdater === 'function' ? valueOrUpdater(prev) : valueOrUpdater;
+        isAutoplayRef.current = nextVal;
+        if (!nextVal) {
+          stopAutoplayMove();
+          setAutoplaySecondsLeft(content.deck.autoplayInterval || 8);
+        }
+        return nextVal;
+      });
+    },
+    [stopAutoplayMove]
+  );
   const [isReady, setIsReady] = useState(false);
 
   // Auto-detect low power mode default on integrated GPUs or mobile screens
@@ -137,6 +171,10 @@ export function useDeckScroll(reducedMotion: boolean) {
 
   // Jump to specific slide index
   const jumpToSlide = useCallback((index: number, pushToHistory = true) => {
+    if (isAutoplayRef.current) {
+      setAutoplaySecondsLeft(content.deck.autoplayInterval || 8);
+    }
+
     const targetIdx = Math.max(0, Math.min(SLIDES_REGISTRY.length - 1, index));
     const { offsets } = getSlideMetrics();
     const targetY = offsets[targetIdx] || 0;
@@ -154,6 +192,10 @@ export function useDeckScroll(reducedMotion: boolean) {
 
   // Jump to next slide or next build step
   const nextStepOrSlide = useCallback(() => {
+    if (isAutoplayRef.current) {
+      setAutoplaySecondsLeft(content.deck.autoplayInterval || 8);
+    }
+
     const slide = SLIDES_REGISTRY[activeSlideIndex];
     if (slide && slide.buildSteps > 0 && currentBuildStep < slide.buildSteps - 1) {
       const { offsets, contentLengths } = getSlideMetrics();
@@ -169,6 +211,10 @@ export function useDeckScroll(reducedMotion: boolean) {
 
   // Jump to previous slide or previous build step
   const prevStepOrSlide = useCallback(() => {
+    if (isAutoplayRef.current) {
+      setAutoplaySecondsLeft(content.deck.autoplayInterval || 8);
+    }
+
     const slide = SLIDES_REGISTRY[activeSlideIndex];
     if (slide && slide.buildSteps > 0 && currentBuildStep > 0) {
       const { offsets, contentLengths } = getSlideMetrics();
@@ -480,35 +526,56 @@ export function useDeckScroll(reducedMotion: boolean) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextStepOrSlide, prevStepOrSlide, jumpToSlide, toggleFullscreen]);
 
-  // Autoplay mode loop
+  const nextStepOrSlideRef = useRef(nextStepOrSlide);
+  nextStepOrSlideRef.current = nextStepOrSlide;
+
+  // Autoplay mode loop - stable effect, not recreated on slide changes
   useEffect(() => {
     if (!isAutoplay || reducedMotion) return;
 
     setAutoplaySecondsLeft(content.deck.autoplayInterval || 8);
 
     const interval = setInterval(() => {
+      if (!isAutoplayRef.current) return;
       setAutoplaySecondsLeft((prev) => {
+        if (!isAutoplayRef.current) return content.deck.autoplayInterval || 8;
         if (prev <= 1) {
-          nextStepOrSlide();
+          if (isAutoplayRef.current) {
+            nextStepOrSlideRef.current();
+          }
           return content.deck.autoplayInterval || 8;
         }
         return prev - 1;
       });
     }, 1000);
 
-    const pauseOnInteraction = () => {
-      setAutoplaySecondsLeft(content.deck.autoplayInterval || 8);
+    const resetAutoplayCountdown = () => {
+      if (isAutoplayRef.current) {
+        setAutoplaySecondsLeft(content.deck.autoplayInterval || 8);
+      }
     };
 
-    window.addEventListener('mousemove', pauseOnInteraction, { passive: true });
-    window.addEventListener('keydown', pauseOnInteraction, { passive: true });
+    const handleVisibilityChange = () => {
+      if (document.hidden && isAutoplayRef.current) {
+        setIsAutoplay(false);
+      }
+    };
+
+    window.addEventListener('mousemove', resetAutoplayCountdown, { passive: true });
+    window.addEventListener('wheel', resetAutoplayCountdown, { passive: true });
+    window.addEventListener('touchmove', resetAutoplayCountdown, { passive: true });
+    window.addEventListener('keydown', resetAutoplayCountdown, { passive: true });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('mousemove', pauseOnInteraction);
-      window.removeEventListener('keydown', pauseOnInteraction);
+      window.removeEventListener('mousemove', resetAutoplayCountdown);
+      window.removeEventListener('wheel', resetAutoplayCountdown);
+      window.removeEventListener('touchmove', resetAutoplayCountdown);
+      window.removeEventListener('keydown', resetAutoplayCountdown);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isAutoplay, reducedMotion, nextStepOrSlide]);
+  }, [isAutoplay, reducedMotion, setIsAutoplay]);
 
   return {
     spacerRef,

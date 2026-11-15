@@ -1,27 +1,64 @@
-import { useState, useRef } from 'react';
-import { Play, Pause, Terminal, Info, ArrowUpRight } from 'lucide-react';
-import { content } from '../../content';
+import React, { useState, useEffect } from 'react';
+import { Play, Terminal, ArrowUpRight } from 'lucide-react';
+import { content, DEMO_VIDEO_URL } from '../../content';
 import { SlideFrame } from '../SlideFrame';
+
+export function getDriveEmbedUrl(url: string): string | null {
+  if (!url || typeof url !== 'string') {
+    console.warn('[Slide14Demo] Invalid Google Drive URL:', url);
+    return null;
+  }
+
+  // Matches https://drive.google.com/file/d/<id>/view... or /file/d/<id>
+  const fileDMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileDMatch && fileDMatch[1]) {
+    return `https://drive.google.com/file/d/${fileDMatch[1]}/preview`;
+  }
+
+  // Matches https://drive.google.com/open?id=<id> or ?id=<id>
+  const idParamMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idParamMatch && idParamMatch[1]) {
+    return `https://drive.google.com/file/d/${idParamMatch[1]}/preview`;
+  }
+
+  console.warn('[Slide14Demo] Unable to parse Google Drive file ID from URL:', url);
+  return null;
+}
 
 interface Slide14DemoProps {
   onOpenOfflineModal: () => void;
   isOnline: boolean | null;
+  isActive?: boolean;
+  onStopAutoplay?: () => void;
 }
 
-export function Slide14Demo({ onOpenOfflineModal, isOnline }: Slide14DemoProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [hasVideoError, setHasVideoError] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+export function Slide14Demo({
+  onOpenOfflineModal,
+  isOnline,
+  isActive = true,
+  onStopAutoplay,
+}: Slide14DemoProps) {
+  const [showIframe, setShowIframe] = useState(false);
 
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play().catch(() => setHasVideoError(true));
-      setIsPlaying(true);
+  // When visitor leaves slide 14 (or slide becomes inactive), remove iframe completely
+  // so audio stops. When they return, placeholder is displayed again.
+  useEffect(() => {
+    if (!isActive) {
+      setShowIframe(false);
     }
+  }, [isActive]);
+
+  const embedUrl = getDriveEmbedUrl(DEMO_VIDEO_URL);
+
+  const handlePlayClick = () => {
+    if (!embedUrl) {
+      console.warn('[Slide14Demo] Cannot play video: embed URL could not be generated.');
+      return;
+    }
+    // Stop deck autoplay if running
+    onStopAutoplay?.();
+    // Mount iframe
+    setShowIframe(true);
   };
 
   const handleAssistantClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -40,52 +77,53 @@ export function Slide14Demo({ onOpenOfflineModal, isOnline }: Slide14DemoProps) 
     >
       <div className="w-full my-auto grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
         {/* Video Player Frame (7 cols) */}
-        <div className="md:col-span-7 rounded-sm overflow-hidden deck-card border border-[#202D4D] shadow-2xl bg-[#0A1024]">
-          {hasVideoError ? (
-            <div className="aspect-video w-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#0A1024] to-[#02030B]">
-              <div className="w-12 h-12 rounded-full bg-[#111B35] border border-[#202D4D] flex items-center justify-center mb-3 text-[#E5C18B]">
-                <Play className="w-5 h-5 ml-0.5" />
-              </div>
+        <div className="md:col-span-7 rounded-sm overflow-hidden deck-card border border-[#202D4D] shadow-2xl bg-[#0A1024] flex flex-col justify-between">
+          {!showIframe ? (
+            <div className="aspect-video w-full flex flex-col items-center justify-center p-4 sm:p-6 text-center bg-gradient-to-b from-[#0A1024] to-[#02030B] relative">
+              <button
+                type="button"
+                onClick={handlePlayClick}
+                aria-label="Play demonstration video"
+                className="w-12 h-12 rounded-full bg-[#111B35] border border-[#202D4D] flex items-center justify-center mb-3 text-[#E5C18B] hover:scale-110 hover:border-[#62C9E8] transition-all cursor-pointer shadow-lg group"
+              >
+                <Play className="w-5 h-5 ml-0.5 group-hover:text-[#62C9E8] transition-colors" />
+              </button>
               <h4 className="text-sm font-heading tracking-wide uppercase text-[#EAF0FF] mb-1">
                 {content.demo.fallbackTitle}
               </h4>
               <p className="text-xs text-[#A1AFCE] max-w-sm mb-3">
                 {content.demo.fallbackDescription}
               </p>
-              <span className="text-[10px] font-mono text-[#A1AFCE] bg-[#111B35] px-2.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono text-[#A1AFCE] bg-[#111B35] px-2.5 py-0.5 rounded border border-[#202D4D]/50">
                 Video clip mode
               </span>
             </div>
           ) : (
-            <div className="relative aspect-video w-full bg-black">
-              <video
-                ref={videoRef}
-                src={content.demo.videoSrc}
-                poster="/images/og-image.svg"
-                playsInline
-                muted
-                loop
-                onError={() => setHasVideoError(true)}
-                className="w-full h-full object-cover"
+            <div className="aspect-video w-full bg-black relative">
+              <iframe
+                src={embedUrl || undefined}
+                title="Sunai demo video"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                className="w-full h-full border-0 absolute inset-0"
               />
-              <button
-                type="button"
-                onClick={togglePlay}
-                aria-label={isPlaying ? 'Pause demonstration video' : 'Play demonstration video'}
-                className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/25 transition-colors group"
-              >
-                <div className="w-12 h-12 rounded-full deck-card border border-[#202D4D] flex items-center justify-center text-[#E5C18B] group-hover:scale-110 transition-transform">
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                </div>
-              </button>
             </div>
           )}
 
-          <div className="p-2.5 border-t border-[#202D4D] bg-[#0A1024]/90 flex items-center gap-2 text-left">
-            <Info className="w-3.5 h-3.5 text-[#E5C18B] flex-shrink-0" />
-            <p className="text-[10px] text-[#A1AFCE] font-mono leading-tight">
-              {content.demo.note}
-            </p>
+          {/* Under-player Fallback Link */}
+          <div className="px-3 py-2 border-t border-[#202D4D] bg-[#0A1024]/90 flex items-center justify-between text-left">
+            <span className="text-[10px] font-mono text-[#647394] uppercase tracking-wider">
+              {showIframe ? 'Live Demonstration' : 'Recorded Demonstration'}
+            </span>
+            <a
+              href={DEMO_VIDEO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-mono text-[#62C9E8] hover:text-[#A5C8FF] hover:underline transition-colors"
+            >
+              <span>Open video in a new tab</span>
+              <ArrowUpRight className="w-3 h-3" />
+            </a>
           </div>
         </div>
 

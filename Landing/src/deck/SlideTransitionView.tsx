@@ -10,6 +10,7 @@ interface SlideTransitionViewProps {
   onOpenOfflineModal: () => void;
   hasScrolled: boolean;
   isLowPower: boolean;
+  onStopAutoplay?: () => void;
 }
 
 export function SlideTransitionView({
@@ -20,6 +21,7 @@ export function SlideTransitionView({
   onOpenOfflineModal,
   hasScrolled,
   isLowPower,
+  onStopAutoplay,
 }: SlideTransitionViewProps) {
   const { isTransitioning, fromIndex, toIndex, progress: t, transitionType } = transitionState;
 
@@ -105,6 +107,8 @@ export function SlideTransitionView({
               onOpenOfflineModal,
               isOnline,
               hasScrolled,
+              isActive: isVisible,
+              onStopAutoplay,
             })}
           </div>
         );
